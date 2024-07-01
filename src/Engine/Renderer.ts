@@ -1,29 +1,40 @@
+export interface IObjectInfo {
+    name: string
+    vertexData: Float32Array
+    vertexBuffer: GPUBuffer
+    fillColor: Float32Array
+    fillColorUniform: GPUBuffer
+
+}
+
+export interface IObjectInfoRequest {
+    name: string
+    vertexData: Float32Array
+    fillColor: Float32Array
+}
+
 export class Renderer {
     private device!: GPUDevice
     private context!: GPUCanvasContext
     private presentationFormat!: GPUTextureFormat
     private vertexShader!: GPUShaderModule
-    private vertexData!: Float32Array
-    private vertexBuffer!: GPUBuffer
-    private fillColor!: Float32Array
-    private fillColorBuffer!: GPUBuffer
     private fragmentShader!: GPUShaderModule
     private bindGroupLayout!: GPUBindGroupLayout
     private pipelineLayout!: GPUPipelineLayout
     private pipeline!: GPURenderPipeline
-    private bindGroup!: GPUBindGroup
     private renderPassDescriptor!: GPURenderPassDescriptor
+    private objectInfos!: Array<IObjectInfo>
+
 
     constructor(private canvas: HTMLCanvasElement) {
     }
 
     public async init() {
+        this.objectInfos = []
         await this.getGPUDevice()
         this.setupCanvasResizing()
         this.configCanvas()
         this.loadShaders()
-        this.confiureBuffers()
-        this.configureBindGroup()
         this.configureRenderPassDescriptor()
         this.startAnimation(60, this)
     }
@@ -160,12 +171,12 @@ export class Renderer {
         })
     }
 
-    private configureBindGroup() {
-        this.bindGroup = this.device.createBindGroup({
+    private getBindGroup(objectInfo: IObjectInfo) {
+        return this.device.createBindGroup({
             label: "Bind Group",
             layout: this.bindGroupLayout,
             entries: [
-                { binding: 0, resource: { buffer: this.fillColorBuffer } }
+                { binding: 0, resource: { buffer: objectInfo.fillColorUniform } }
             ]
         })
     }
@@ -182,38 +193,38 @@ export class Renderer {
         }
     }
 
-    private confiureBuffers() {
-        const vertices = new Float32Array([
-            -0.5, -0.5, 0.5, 0.5, -0.5, 0.5,
-            -0.5, -0.5, 0.5, -0.5, 0.5, 0.5
-        ])
-        const fillColor = new Float32Array([1, 1, 1, 1])
+    public addDrawObject(info: IObjectInfoRequest) {
+        const vertexInfo = this.getVertexInfo(info.vertexData, info.name)
+        const colorInfo = this.getFillColorInfo(info.fillColor, info.name)
 
-        this.loadVertexBuffer(vertices)
-        this.configFillColorUniform()
-        this.setFillColor(fillColor)
+        this.objectInfos.push({
+            name: info.name,
+            vertexData: vertexInfo.vertices,
+            vertexBuffer: vertexInfo.buffer,
+            fillColor: colorInfo.color,
+            fillColorUniform: colorInfo.buffer
+        })
     }
 
-    public loadVertexBuffer(data: Float32Array) {
-        this.vertexData = data
-        this.vertexBuffer = this.device.createBuffer({
-            label: "Vertex Buffer",
-            size: this.vertexData.byteLength,
+    public removeDrawObject(name: string) {
+        this.objectInfos = this.objectInfos.filter((v) => v.name !== name)
+    }
+
+    private getVertexInfo(data: Float32Array, name: string) {
+        const vertexData = data
+        const vertexBuffer = this.device.createBuffer({
+            label: `Vertex Buffer: ${name}`,
+            size: vertexData.byteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
         })
 
-        this.device.queue.writeBuffer(this.vertexBuffer, 0, this.vertexData)
+        return {
+            vertices: vertexData,
+            buffer: vertexBuffer
+        }
     }
 
-    private configFillColorUniform() {
-        this.fillColorBuffer = this.device.createBuffer({
-            label: "Color Fill Uniform Buffer",
-            size: 4 * 4,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-        })
-    }
-
-    public setFillColor(data: Float32Array) {
+    private getFillColorInfo(data: Float32Array, name: string) {
         if (data.length != 4) {
             throw new Error("Data must have 4 elements")
         }
@@ -224,8 +235,20 @@ export class Renderer {
             }
         })
 
-        this.fillColor = data
-        this.device.queue.writeBuffer(this.fillColorBuffer, 0, this.fillColor)
+        return {
+            color: data,
+            buffer: this.getFillColorBuffer(name)
+        }
+    }
+
+    private getFillColorBuffer(name: string) {
+        const fillColorBuffer = this.device.createBuffer({
+            label: `Color Fill Uniform Buffer: ${name}`,
+            size: 4 * 4,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        })
+
+        return fillColorBuffer
     }
 
     private startAnimation(targetFps: number, renderer: Renderer) {
@@ -261,9 +284,15 @@ export class Renderer {
 
         const pass = encoder.beginRenderPass(this.renderPassDescriptor)
         pass.setPipeline(this.pipeline)
-        pass.setVertexBuffer(0, this.vertexBuffer)
-        pass.setBindGroup(0, this.bindGroup)
-        pass.draw(this.vertexData.length / 2)
+
+        for (const objectInfo of this.objectInfos) {
+            pass.setBindGroup(0, this.getBindGroup(objectInfo))
+            this.device.queue.writeBuffer(objectInfo.fillColorUniform, 0, objectInfo.fillColor)
+            this.device.queue.writeBuffer(objectInfo.vertexBuffer, 0, objectInfo.vertexData)
+            pass.setVertexBuffer(0, objectInfo.vertexBuffer)
+            pass.draw(objectInfo.vertexData.length / 2)
+        }
+
         pass.end()
 
         this.device.queue.submit([encoder.finish()])
