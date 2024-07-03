@@ -7,21 +7,31 @@ export async function main() {
 
     gEngine.GL.loadShaders(SimpleVS, SimpleFS)
 
-    const vertices = new Float32Array([
+    const vertices = [
         -0.5, -0.5, -0.5, 0.5, 0.5, 0.5,
         -0.5, -0.5, 0.5, -0.5, 0.5, 0.5
-    ])
+    ]
 
     gEngine.GL.addDrawObject({
         name: "Upper Triangle",
         vertexData: vertices,
-        fillColor: new Float32Array([0.5, 0, 1, 1])
+        fillColor: [1, 1, 1, 1],
+        transformation: {
+            translate: [-0.25, 0.25],
+            rotate: 0.2,
+            scale: [1.2, 1.2]
+        }
     })
 
     gEngine.GL.addDrawObject({
         name: "Lower Triangle",
         vertexData: vertices,
-        fillColor: new Float32Array([0, 0, 1, 1])
+        fillColor: [1, 0, 0, 1],
+        transformation: {
+            rotate: -Math.PI / 4,
+            scale: [0.4, 0.4],
+            translate: [0.25, -0.25]
+        }
     })
 
 }

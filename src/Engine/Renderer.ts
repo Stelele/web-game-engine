@@ -4,13 +4,21 @@ export interface IObjectInfo {
     vertexBuffer: GPUBuffer
     fillColor: Float32Array
     fillColorUniform: GPUBuffer
-
+    transformation: Float32Array
+    transformationUniform: GPUBuffer
 }
 
 export interface IObjectInfoRequest {
     name: string
-    vertexData: Float32Array
-    fillColor: Float32Array
+    vertexData: number[]
+    fillColor: number[]
+    transformation?: ITransformation
+}
+
+export interface ITransformation {
+    translate?: number[]
+    scale?: number[]
+    rotate?: number
 }
 
 export class Renderer {
@@ -137,6 +145,11 @@ export class Renderer {
                     binding: 0,
                     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer: { type: "uniform" }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    buffer: { type: "uniform" }
                 }
             ]
         })
@@ -176,7 +189,8 @@ export class Renderer {
             label: "Bind Group",
             layout: this.bindGroupLayout,
             entries: [
-                { binding: 0, resource: { buffer: objectInfo.fillColorUniform } }
+                { binding: 0, resource: { buffer: objectInfo.fillColorUniform } },
+                { binding: 1, resource: { buffer: objectInfo.transformationUniform } }
             ]
         })
     }
@@ -196,13 +210,16 @@ export class Renderer {
     public addDrawObject(info: IObjectInfoRequest) {
         const vertexInfo = this.getVertexInfo(info.vertexData, info.name)
         const colorInfo = this.getFillColorInfo(info.fillColor, info.name)
+        const transformInfo = this.getTransformationInfo(info.transformation ?? {}, info.name)
 
         this.objectInfos.push({
             name: info.name,
             vertexData: vertexInfo.vertices,
             vertexBuffer: vertexInfo.buffer,
             fillColor: colorInfo.color,
-            fillColorUniform: colorInfo.buffer
+            fillColorUniform: colorInfo.buffer,
+            transformation: transformInfo.transform,
+            transformationUniform: transformInfo.buffer
         })
     }
 
@@ -210,8 +227,8 @@ export class Renderer {
         this.objectInfos = this.objectInfos.filter((v) => v.name !== name)
     }
 
-    private getVertexInfo(data: Float32Array, name: string) {
-        const vertexData = data
+    private getVertexInfo(data: number[], name: string) {
+        const vertexData = new Float32Array(data)
         const vertexBuffer = this.device.createBuffer({
             label: `Vertex Buffer: ${name}`,
             size: vertexData.byteLength,
@@ -224,7 +241,7 @@ export class Renderer {
         }
     }
 
-    private getFillColorInfo(data: Float32Array, name: string) {
+    private getFillColorInfo(data: number[], name: string) {
         if (data.length != 4) {
             throw new Error("Data must have 4 elements")
         }
@@ -235,20 +252,56 @@ export class Renderer {
             }
         })
 
-        return {
-            color: data,
-            buffer: this.getFillColorBuffer(name)
-        }
-    }
-
-    private getFillColorBuffer(name: string) {
         const fillColorBuffer = this.device.createBuffer({
             label: `Color Fill Uniform Buffer: ${name}`,
             size: 4 * 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         })
 
-        return fillColorBuffer
+        return {
+            color: new Float32Array(data),
+            buffer: fillColorBuffer
+        }
+    }
+
+    private getTransformationInfo(data: ITransformation, name: string) {
+        if (data.scale && data.scale.length != 2) {
+            throw new Error("Scale array must contain two elements")
+        }
+
+        if (data.translate && data.translate.length != 2) {
+            throw new Error("Translate array must contain two elements")
+        }
+
+        const transformValues = new Float32Array(6)
+        const transformViews = {
+            rotate: { byteOffset: 0, length: 1 },
+            translate: { byteOffset: 2, length: 2 },
+            scale: { byteOffset: 4, length: 2 },
+        }
+
+        transformValues.set(
+            [data.rotate ?? 0],
+            transformViews.rotate.byteOffset
+        )
+        transformValues.set(
+            data.translate ?? [0, 0],
+            transformViews.translate.byteOffset
+        )
+        transformValues.set(
+            data.scale ?? [1, 1],
+            transformViews.scale.byteOffset)
+
+        const transformBuffer = this.device.createBuffer({
+            label: `Transform Uniform Buffer: ${name}`,
+            size: transformValues.byteLength,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        })
+
+        return {
+            transform: transformValues,
+            buffer: transformBuffer
+        }
     }
 
     private startAnimation(targetFps: number, renderer: Renderer) {
@@ -289,6 +342,7 @@ export class Renderer {
             pass.setBindGroup(0, this.getBindGroup(objectInfo))
             this.device.queue.writeBuffer(objectInfo.fillColorUniform, 0, objectInfo.fillColor)
             this.device.queue.writeBuffer(objectInfo.vertexBuffer, 0, objectInfo.vertexData)
+            this.device.queue.writeBuffer(objectInfo.transformationUniform, 0, objectInfo.transformation)
             pass.setVertexBuffer(0, objectInfo.vertexBuffer)
             pass.draw(objectInfo.vertexData.length / 2)
         }
