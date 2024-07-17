@@ -12,14 +12,9 @@ export interface IObjectInfoRequest {
     name: string
     vertexData: number[]
     fillColor: number[]
-    transformation?: ITransformation
+    transformation: number[]
 }
 
-export interface ITransformation {
-    translate?: number[]
-    scale?: number[]
-    rotate?: number
-}
 
 export class Renderer {
     private device!: GPUDevice
@@ -210,7 +205,7 @@ export class Renderer {
     public addDrawObject(info: IObjectInfoRequest) {
         const vertexInfo = this.getVertexInfo(info.vertexData, info.name)
         const colorInfo = this.getFillColorInfo(info.fillColor, info.name)
-        const transformInfo = this.getTransformationInfo(info.transformation ?? {}, info.name)
+        const transformInfo = this.getTransformationInfo(info.transformation, info.name)
 
         this.objectInfos.push({
             name: info.name,
@@ -260,46 +255,25 @@ export class Renderer {
 
         return {
             color: new Float32Array(data),
-            buffer: fillColorBuffer
+            buffer: fillColorBuffer,
         }
     }
 
-    private getTransformationInfo(data: ITransformation, name: string) {
-        if (data.scale && data.scale.length != 2) {
-            throw new Error("Scale array must contain two elements")
+    private getTransformationInfo(data: number[], name: string) {
+        if (data.length !== 16) {
+            throw new Error("Must be a 1D array of size 16")
         }
 
-        if (data.translate && data.translate.length != 2) {
-            throw new Error("Translate array must contain two elements")
-        }
-
-        const transformValues = new Float32Array(6)
-        const transformViews = {
-            rotate: { byteOffset: 0, length: 1 },
-            translate: { byteOffset: 2, length: 2 },
-            scale: { byteOffset: 4, length: 2 },
-        }
-
-        transformValues.set(
-            [data.rotate ?? 0],
-            transformViews.rotate.byteOffset
-        )
-        transformValues.set(
-            data.translate ?? [0, 0],
-            transformViews.translate.byteOffset
-        )
-        transformValues.set(
-            data.scale ?? [1, 1],
-            transformViews.scale.byteOffset)
+        const transform = new Float32Array(data)
 
         const transformBuffer = this.device.createBuffer({
-            label: `Transform Uniform Buffer: ${name}`,
-            size: transformValues.byteLength,
+            label: `World Transformation Buffer: ${name}`,
+            size: transform.byteLength,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         })
 
         return {
-            transform: transformValues,
+            transform,
             buffer: transformBuffer
         }
     }

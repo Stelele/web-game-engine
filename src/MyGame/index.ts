@@ -1,4 +1,5 @@
 import { gEngine } from "../Engine";
+import { Renderable } from "../Engine/Core/Renderable";
 import { SimpleFS } from "../shaders/SimpleFS";
 import { SimpleVS } from "../shaders/SimpleVS";
 
@@ -12,27 +13,21 @@ export async function main() {
         -0.5, -0.5, 0.5, -0.5, 0.5, 0.5
     ]
 
-    gEngine.GL.addDrawObject({
-        name: "Upper Triangle",
-        vertexData: vertices,
-        fillColor: [1, 1, 1, 1],
-        transformation: {
-            translate: [-0.25, 0.25],
-            rotate: 0.2,
-            scale: [1.2, 1.2]
-        }
-    })
+    const upperTriangle = new Renderable("White Square")
+        .vertices(vertices)
+        .color([1, 1, 1, 1])
+        .translate({ x: -0.25, y: 0.25 })
+        .scale(1.2)
+        .rotate(0.2)
+    gEngine.GL.addDrawObject(upperTriangle.getObjectInfo())
 
-    gEngine.GL.addDrawObject({
-        name: "Lower Triangle",
-        vertexData: vertices,
-        fillColor: [1, 0, 0, 1],
-        transformation: {
-            rotate: -Math.PI / 4,
-            scale: [0.4, 0.4],
-            translate: [0.25, -0.25]
-        }
-    })
+    const lowerTriangle = new Renderable("Red Square")
+        .vertices(vertices)
+        .color([1, 0, 0, 1])
+        .translate({ x: 0.25, y: -0.25 })
+        .scale(0.4)
+        .rotate(-0.785)
+    gEngine.GL.addDrawObject(lowerTriangle.getObjectInfo())
 
 }
 
