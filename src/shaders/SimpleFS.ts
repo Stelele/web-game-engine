@@ -4,7 +4,7 @@ export const SimpleFS = /* wgsl */ `
     ${Uniforms}
 
     @fragment
-    fn fs() -> @location(0) vec4f {
+    fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f {
         return color;
     }
 `

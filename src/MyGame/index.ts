@@ -1,33 +1,25 @@
 import { gEngine } from "../Engine";
 import { Renderable } from "../Engine/Core/Renderable";
-import { SimpleFS } from "../shaders/SimpleFS";
-import { SimpleVS } from "../shaders/SimpleVS";
+import { RedSquareSprite } from "./Sprites/RedSquareSprite";
+import { WhiteSquareSprite } from "./Sprites/WhiteSquareSprite";
 
 export async function main() {
+    gEngine.setWorldDimensions(640)
     await gEngine.initializeWebGPU("GLCanvas")
+    gEngine.GL.clearCanvas([0.9, 0.9, 0.9, 1])
 
-    gEngine.GL.loadShaders(SimpleVS, SimpleFS)
+    gEngine.GL.setViewPort({ x: 0.1, y: 0.1, width: 0.8 })
+    const background = new Renderable("Background")
+        .rect(gEngine.width, gEngine.height)
+        .setColor([0.8, 0.8, 0.8, 1])
+    gEngine.GL.addDrawObject(background)
 
-    const vertices = [
-        -0.5, -0.5, -0.5, 0.5, 0.5, 0.5,
-        -0.5, -0.5, 0.5, -0.5, 0.5, 0.5
-    ]
 
-    const upperTriangle = new Renderable("White Square")
-        .vertices(vertices)
-        .color([1, 1, 1, 1])
-        .translate({ x: -0.25, y: 0.25 })
-        .scale(1.2)
-        .rotate(0.2)
-    gEngine.GL.addDrawObject(upperTriangle.getObjectInfo())
+    const redSquare = new RedSquareSprite()
+    gEngine.GL.addDrawObject(redSquare)
 
-    const lowerTriangle = new Renderable("Red Square")
-        .vertices(vertices)
-        .color([1, 0, 0, 1])
-        .translate({ x: 0.25, y: -0.25 })
-        .scale(0.4)
-        .rotate(-0.785)
-    gEngine.GL.addDrawObject(lowerTriangle.getObjectInfo())
+    const whiteSquare = new WhiteSquareSprite()
+    gEngine.GL.addDrawObject(whiteSquare)
 
 }
 

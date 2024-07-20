@@ -5,13 +5,15 @@ export const SimpleVS = /* wgsl */ `
         @location(0) pos: vec2f,
         @builtin(vertex_index) index: u32
     }
-
     ${Uniforms}
 
     @vertex
     fn vs(in: VertexIn) -> @builtin(position) vec4f {
-        let pos = transform * vec4f(in.pos, .0, 1.);  
-        return pos;
+        var pos = in.pos;
+        pos = (transform * vec3f(pos, 1.)).xy;
+        pos = ((2 * pos / world) - 1) * vec2f(1, -1); 
+        
+        return vec4f(pos, .0, 1.);
     }
 
     
