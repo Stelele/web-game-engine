@@ -21,6 +21,7 @@ export class Renderable {
         this.setPos()
     }
 
+    public get name() { return this._name }
     public get x() { return this._x }
     public get y() { return this._y }
     public get width() { return this._width }
@@ -138,7 +139,6 @@ export class Renderable {
             fillColor: this._color,
             vertexData: this._vertices,
             draw: this.draw.bind(this),
-            update: this.update.bind(this),
         }
     }
 

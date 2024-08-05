@@ -1,4 +1,5 @@
 import { Renderable } from "./Renderable";
+import { IScene } from "./Scene";
 
 export type IViewPortInfo = { x: number; y: number; width: number; height: number }
 export type IViewPortInfoRequest = { x: number; y: number; width: number }
@@ -10,14 +11,12 @@ export interface IObjectInfo {
     fillColorUniform: GPUBuffer
     transformationUniform: GPUBuffer
     draw: () => number[]
-    update: () => void
 }
 export interface IObjectInfoRequest {
     name: string
     vertexData: number[]
     fillColor: number[]
     draw: () => number[]
-    update: () => void
 }
 
 
@@ -35,6 +34,7 @@ export class Renderer {
     private worldDimensions!: Float32Array
     private worldDimensionsUniform!: GPUBuffer
     private viewPort?: IViewPortInfoRequest
+    private curScene!: IScene
 
     constructor(private canvas: HTMLCanvasElement) { }
 
@@ -44,6 +44,7 @@ export class Renderer {
             height: Math.floor(this.canvas.height)
         }
     }
+
     public async init(worldWidth: number, worldHeight: number) {
         this.objectInfos = []
         await this.getGPUDevice()
@@ -221,7 +222,16 @@ export class Renderer {
         }
     }
 
-    public addDrawObject(obj: Renderable) {
+    public setScene(scene: IScene) {
+        this.objectInfos = []
+        this.curScene = scene
+
+        for (const obj of this.curScene.getRenderables()) {
+            this.addDrawObject(obj)
+        }
+    }
+
+    private addDrawObject(obj: Renderable) {
         const info = obj.getObjectInfo()
         const vertexInfo = this.getVertexInfo(info.vertexData, info.name)
         const colorInfo = this.getFillColorInfo(info.fillColor, info.name)
@@ -234,13 +244,8 @@ export class Renderer {
             fillColor: colorInfo.color,
             fillColorUniform: colorInfo.buffer,
             transformationUniform: transformBuffer,
-            update: info.update,
-            draw: info.draw
+            draw: info.draw,
         })
-    }
-
-    public removeDrawObject(name: string) {
-        this.objectInfos = this.objectInfos.filter((v) => v.name !== name)
     }
 
     private getVertexInfo(data: number[], name: string) {
@@ -309,9 +314,7 @@ export class Renderer {
         requestAnimationFrame(animate)
 
         function animate(timeStep: number) {
-            for (const objectInfo of renderer.objectInfos) {
-                objectInfo.update()
-            }
+            renderer.curScene.update()
 
             if (start === undefined) {
                 start = timeStep
