@@ -4,5 +4,5 @@ export interface IResourceManifest {
 
 export interface IResource {
     url: string
-    type: "sound" | "text"
+    type: "sound" | "text" | "image"
 }

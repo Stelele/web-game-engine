@@ -1,8 +1,10 @@
 import { Mat3 } from "../Utilities/Mat3";
-import { IObjectInfoRequest } from "./Renderer";
+import { ImageLoader } from "./Resources";
+import { IObjectInfoRequest, IRenderableType } from "./Types/ObjectInfo";
 
 export class Renderable {
     private _name: string
+    private _type: IRenderableType
     private _vertices!: number[]
     private _color!: number[]
     private _scale!: number
@@ -11,9 +13,12 @@ export class Renderable {
     private _y!: number
     private _width!: number
     private _height!: number
+    private _imageBitmap!: ImageBitmap
+    private _imageUVs!: number[]
 
-    public constructor(name: string) {
+    public constructor(name: string, type: IRenderableType = 'primitive') {
         this._name = name
+        this._type = type
         this.vertices()
         this.setColor()
         this.setScale()
@@ -36,9 +41,41 @@ export class Renderable {
         this._width = width
         this._height = height
         this.vertices([
-            0, 0, 0, height, width, 0,
-            0, height, width, height, width, 0
+            0, 0,
+            0, height,
+            width, 0,
+            0, height,
+            width, height,
+            width, 0
         ])
+
+        return this
+    }
+
+    public texture(width: number, height: number, image: string) {
+        this._width = width
+        this._height = height
+        this.vertices([
+            0, 0,
+            0, height,
+            width, 0,
+            0, height,
+            width, height,
+            width, 0
+        ])
+
+        const imageBitmap = ImageLoader.fetchImage(image)
+        if (imageBitmap) {
+            this._imageBitmap = imageBitmap
+        }
+        this._imageUVs = [
+            0, 0,
+            0, 1,
+            1, 0,
+            0, 1,
+            1, 1,
+            1, 0,
+        ]
 
         return this
     }
@@ -134,10 +171,28 @@ export class Renderable {
     }
 
     public getObjectInfo(): IObjectInfoRequest {
+        if (this._type === 'primitive') {
+            return {
+                type: 'primitive',
+                name: this._name,
+                fillColor: this._color,
+                vertexData: this._vertices,
+                draw: this.draw.bind(this),
+            }
+        }
+
         return {
+            type: 'texture',
             name: this._name,
             fillColor: this._color,
             vertexData: this._vertices,
+            textureUVs: this._imageUVs,
+            imageBitmap: this._imageBitmap,
+            samplerType: {
+                addressModeU: 'clamp-to-edge',
+                addressModeV: 'clamp-to-edge',
+                magFilter: 'nearest',
+            },
             draw: this.draw.bind(this),
         }
     }

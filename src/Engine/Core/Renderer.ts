@@ -1,34 +1,17 @@
 import { Renderable } from "./Renderable";
 import { IScene } from "./Scene";
-
-export type IViewPortInfo = { x: number; y: number; width: number; height: number }
-export type IViewPortInfoRequest = { x: number; y: number; width: number }
-export interface IObjectInfo {
-    name: string
-    vertexData: Float32Array
-    vertexBuffer: GPUBuffer
-    fillColor: Float32Array
-    fillColorUniform: GPUBuffer
-    transformationUniform: GPUBuffer
-    draw: () => number[]
-}
-export interface IObjectInfoRequest {
-    name: string
-    vertexData: number[]
-    fillColor: number[]
-    draw: () => number[]
-}
-
+import { IObjectInfo, IRenderableType, ISamplerType } from './Types/ObjectInfo'
+import { IViewPortInfo, IViewPortInfoRequest } from './Types/ViewPort'
 
 export class Renderer {
     private device!: GPUDevice
     private context!: GPUCanvasContext
     private presentationFormat!: GPUTextureFormat
-    private vertexShader!: GPUShaderModule
-    private fragmentShader!: GPUShaderModule
-    private bindGroupLayout!: GPUBindGroupLayout
-    private pipelineLayout!: GPUPipelineLayout
-    private pipeline!: GPURenderPipeline
+    private shaders: Record<string, { vertex: GPUShaderModule; fragment: GPUShaderModule }> = {}
+    private bindGroupLayouts: Record<string, GPUBindGroupLayout> = {}
+    private pipelineLayouts: Record<string, GPUPipelineLayout> = {}
+    private pipelines: Record<string, GPURenderPipeline> = {}
+    private samplers: Array<GPUSampler> = []
     private renderPassDescriptor!: GPURenderPassDescriptor
     private objectInfos!: Array<IObjectInfo>
     private worldDimensions!: Float32Array
@@ -51,6 +34,7 @@ export class Renderer {
         this.configWorldProperties(worldWidth, worldHeight)
         this.setupCanvasResizing()
         this.configCanvas()
+        this.setupSamplers()
         this.loadShaders()
         this.configureRenderPassDescriptor()
         this.startAnimation(60, this)
@@ -114,17 +98,34 @@ export class Renderer {
         document.body.innerHTML = `<H1>${msg}</H1>`
     }
 
-    public loadShaders(vertexShader?: string, fragmentShader?: string) {
-        this.loadVertexShader(vertexShader)
-        this.loadFragmentShader(fragmentShader)
-
-        this.configureBindGroupLayout()
-        this.configurePipeline()
+    private setupSamplers() {
+        for (let i = 0; i < 8; i++) {
+            this.samplers.push(
+                this.device.createSampler({
+                    label: `Sampler: ${i}`,
+                    addressModeU: (i & 1) ? 'repeat' : 'clamp-to-edge',
+                    addressModeV: (i & 2) ? 'repeat' : 'clamp-to-edge',
+                    magFilter: (i & 4) ? 'linear' : 'nearest'
+                })
+            )
+        }
     }
 
-    private loadVertexShader(shader?: string) {
-        this.vertexShader = this.device.createShaderModule({
-            label: "Vertex Shader",
+    public loadShaders(vertexShader?: string, fragmentShader?: string, type: IRenderableType = 'primitive') {
+        const vs = this.loadVertexShader(type, vertexShader)
+        const fs = this.loadFragmentShader(type, fragmentShader)
+        this.shaders[type] = {
+            vertex: vs,
+            fragment: fs
+        }
+
+        this.configureBindGroupLayout(type)
+        this.configurePipeline(type)
+    }
+
+    private loadVertexShader(type: IRenderableType, shader?: string) {
+        return this.device.createShaderModule({
+            label: `Vertex Shader: ${type}`,
             code: shader ?? /* wgsl */`
                 @vertex
                 fn vs() -> @builtin(position) vec4f {
@@ -134,9 +135,9 @@ export class Renderer {
         })
     }
 
-    private loadFragmentShader(shader?: string) {
-        this.fragmentShader = this.device.createShaderModule({
-            label: "Fragment Shader",
+    private loadFragmentShader(type: IRenderableType, shader?: string) {
+        return this.device.createShaderModule({
+            label: `Fragment Shader: ${type}`,
             code: shader ?? /* wgsl */`
                 @fragment
                 fn fs() -> @location(0) vec4f {
@@ -146,68 +147,114 @@ export class Renderer {
         })
     }
 
-    private configureBindGroupLayout() {
-        this.bindGroupLayout = this.device.createBindGroupLayout({
-            label: "Bind Group Layout",
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    buffer: { type: "uniform" }
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    buffer: { type: "uniform" }
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                    buffer: { type: "uniform" }
-                },
-            ]
-        })
+    private configureBindGroupLayout(type: IRenderableType) {
+        const baseEntries: Iterable<GPUBindGroupLayoutEntry> = [
+            {
+                binding: 0,
+                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                buffer: { type: "uniform" }
+            },
+            {
+                binding: 1,
+                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                buffer: { type: "uniform" }
+            },
+            {
+                binding: 2,
+                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                buffer: { type: "uniform" }
+            },
+        ]
 
-        this.pipelineLayout = this.device.createPipelineLayout({
-            label: "Pipeline Layout",
+        if (type === 'primitive') {
+            this.bindGroupLayouts[type] = this.device.createBindGroupLayout({
+                label: `Bind Group Layout: ${type}`,
+                entries: baseEntries
+            })
+        } else if (type === 'texture') {
+            this.bindGroupLayouts[type] = this.device.createBindGroupLayout({
+                label: `Bind Group Layout: ${type}`,
+                entries: [
+                    ...baseEntries,
+                    {
+                        binding: 3,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        sampler: {}
+                    },
+                    {
+                        binding: 4,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        texture: {}
+                    }
+                ]
+            })
+        }
+
+        this.pipelineLayouts[type] = this.device.createPipelineLayout({
+            label: `Pipeline Layout: ${type}`,
             bindGroupLayouts: [
-                this.bindGroupLayout
+                this.bindGroupLayouts[type]
             ]
         })
     }
 
-    private configurePipeline() {
-        this.pipeline = this.device.createRenderPipeline({
-            label: "Render Pipeline",
-            layout: this.pipelineLayout,
-            vertex: {
-                module: this.vertexShader,
-                buffers: [
-                    {
-                        arrayStride: 2 * 4,
-                        attributes: [
-                            { shaderLocation: 0, offset: 0, format: "float32x2" }
-                        ]
-                    }
+    private configurePipeline(type: IRenderableType) {
+        const buffers: Array<GPUVertexBufferLayout | null> = [
+            {
+                arrayStride: 2 * 4,
+                attributes: [
+                    { shaderLocation: 0, offset: 0, format: "float32x2" }
                 ]
+            }
+        ]
+
+        if (type === 'texture') {
+            buffers.push({
+                arrayStride: 2 * 4,
+                attributes: [
+                    { shaderLocation: 1, offset: 0, format: "float32x2" }
+                ]
+            })
+        }
+
+        this.pipelines[type] = this.device.createRenderPipeline({
+            label: `Render Pipeline: ${type}`,
+            layout: this.pipelineLayouts[type],
+            vertex: {
+                module: this.shaders[type].vertex,
+                buffers
             },
             fragment: {
-                module: this.fragmentShader,
+                module: this.shaders[type].fragment,
                 targets: [{ format: this.presentationFormat }]
             }
         })
     }
 
     private getBindGroup(objectInfo: IObjectInfo) {
+        const entries: Array<GPUBindGroupEntry> = [
+            { binding: 0, resource: { buffer: objectInfo.fillColorUniform } },
+            { binding: 1, resource: { buffer: objectInfo.transformationUniform } },
+            { binding: 2, resource: { buffer: this.worldDimensionsUniform } },
+        ]
+
+        if (objectInfo.type === 'texture') {
+            const sampler = this.samplers[this.getSamplerIndex(objectInfo.samplerType)]
+            entries.push({ binding: 3, resource: sampler })
+            entries.push({ binding: 4, resource: objectInfo.texture.createView() })
+        }
+
         return this.device.createBindGroup({
             label: "Bind Group",
-            layout: this.bindGroupLayout,
-            entries: [
-                { binding: 0, resource: { buffer: objectInfo.fillColorUniform } },
-                { binding: 1, resource: { buffer: objectInfo.transformationUniform } },
-                { binding: 2, resource: { buffer: this.worldDimensionsUniform } },
-            ]
+            layout: this.bindGroupLayouts[objectInfo.type],
+            entries
         })
+    }
+
+    private getSamplerIndex(samplerType: ISamplerType) {
+        return (samplerType.addressModeU === 'repeat' ? 1 : 0) +
+            (samplerType.addressModeV === 'repeat' ? 1 : 0) +
+            (samplerType.magFilter === 'linear' ? 1 : 0)
     }
 
     private configureRenderPassDescriptor() {
@@ -237,15 +284,34 @@ export class Renderer {
         const colorInfo = this.getFillColorInfo(info.fillColor, info.name)
         const transformBuffer = this.getTransformationBuffer(info.name)
 
-        this.objectInfos.push({
-            name: info.name,
-            vertexData: vertexInfo.vertices,
-            vertexBuffer: vertexInfo.buffer,
-            fillColor: colorInfo.color,
-            fillColorUniform: colorInfo.buffer,
-            transformationUniform: transformBuffer,
-            draw: info.draw,
-        })
+        if (info.type === 'primitive') {
+            this.objectInfos.push({
+                type: 'primitive',
+                name: info.name,
+                vertexData: vertexInfo.vertices,
+                vertexBuffer: vertexInfo.buffer,
+                fillColor: colorInfo.color,
+                fillColorUniform: colorInfo.buffer,
+                transformationUniform: transformBuffer,
+                draw: info.draw,
+            })
+        } else if (info.type === 'texture') {
+            const textureInfo = this.getTextureInfo(info.name, info.imageBitmap, info.textureUVs)
+            this.objectInfos.push({
+                type: 'texture',
+                name: info.name,
+                vertexData: vertexInfo.vertices,
+                vertexBuffer: vertexInfo.buffer,
+                fillColor: colorInfo.color,
+                fillColorUniform: colorInfo.buffer,
+                transformationUniform: transformBuffer,
+                texture: textureInfo.texture,
+                textureUVs: textureInfo.uvData,
+                textureUVsBuffer: textureInfo.uvBuffer,
+                samplerType: info.samplerType,
+                draw: info.draw,
+            })
+        }
     }
 
     private getVertexInfo(data: number[], name: string) {
@@ -297,6 +363,36 @@ export class Renderer {
 
     }
 
+    private getTextureInfo(name: string, image: ImageBitmap, uvs: number[]) {
+        const texture = this.device.createTexture({
+            label: `Texture: ${name}`,
+            format: 'rgba8unorm',
+            size: [image.width, image.height],
+            usage: GPUTextureUsage.TEXTURE_BINDING |
+                GPUTextureUsage.COPY_DST |
+                GPUTextureUsage.RENDER_ATTACHMENT
+        })
+
+        this.device.queue.copyExternalImageToTexture(
+            { source: image, flipY: false },
+            { texture },
+            { width: image.width, height: image.height },
+        )
+
+        const uvData = new Float32Array(uvs)
+        const uvBuffer = this.device.createBuffer({
+            label: `UV Vertex Buffer: ${name}`,
+            size: uvData.byteLength,
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+        })
+
+        return {
+            texture,
+            uvData,
+            uvBuffer,
+        }
+    }
+
     private configWorldProperties(width: number, height: number) {
         this.worldDimensions = new Float32Array([width, height])
         this.worldDimensionsUniform = this.device.createBuffer({
@@ -314,7 +410,7 @@ export class Renderer {
         requestAnimationFrame(animate)
 
         function animate(timeStep: number) {
-            renderer.curScene.update()
+            renderer.curScene?.update()
 
             if (start === undefined) {
                 start = timeStep
@@ -388,18 +484,22 @@ export class Renderer {
         const encoder = this.device.createCommandEncoder({ label: "render encoder" })
 
         const pass = encoder.beginRenderPass(this.renderPassDescriptor)
-        pass.setPipeline(this.pipeline)
 
         let v = this.getViewPortInfo()
         pass.setViewport(v.x, v.y, v.width, v.height, 0, 1)
         pass.setScissorRect(v.x, v.y, v.width, v.height)
 
         for (const objectInfo of this.objectInfos) {
+            pass.setPipeline(this.pipelines[objectInfo.type])
             pass.setBindGroup(0, this.getBindGroup(objectInfo))
             this.device.queue.writeBuffer(objectInfo.fillColorUniform, 0, objectInfo.fillColor)
             this.device.queue.writeBuffer(objectInfo.vertexBuffer, 0, objectInfo.vertexData)
             this.device.queue.writeBuffer(objectInfo.transformationUniform, 0, this.getTransformArray(objectInfo))
             pass.setVertexBuffer(0, objectInfo.vertexBuffer)
+            if (objectInfo.type === 'texture') {
+                pass.setVertexBuffer(1, objectInfo.textureUVsBuffer)
+                this.device.queue.writeBuffer(objectInfo.textureUVsBuffer, 0, objectInfo.textureUVs)
+            }
             pass.draw(objectInfo.vertexData.length / 2)
         }
 
