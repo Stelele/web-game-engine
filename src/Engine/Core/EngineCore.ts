@@ -1,7 +1,7 @@
 import { SimpleFS } from "../Shaders/SimpleFS"
 import { SimpleVS } from "../Shaders/SimpleVS"
 import { TextureFS } from "../Shaders/TextureFS"
-import { TexturevS } from "../Shaders/TextureVS"
+import { TexturevS as TextureVS } from "../Shaders/TextureVS"
 import { InputHandler } from "./InputHandler"
 import { Renderer } from "./Renderer"
 import { ResourceMap } from "./Resources/ResourceMap"
@@ -37,7 +37,8 @@ export class gEngine {
 
         await this._Renderer.init(this.width, this.height)
         this.GL.loadShaders(SimpleVS, SimpleFS, 'primitive')
-        this.GL.loadShaders(TexturevS, TextureFS, 'texture')
+        this.GL.loadShaders(TextureVS, TextureFS, 'texture')
+        this.GL.loadShaders(TextureVS, TextureFS, 'animated-texture')
     }
 
     public static setWorldDimensions(width: number) {

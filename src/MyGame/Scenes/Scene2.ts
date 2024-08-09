@@ -1,4 +1,4 @@
-import { AudioLoader, gEngine, IScene, Renderable } from "../../Engine";
+import { AudioLoader, gEngine, IScene, Renderable, TextureRenderable } from "../../Engine";
 import { ResourceManifest } from "../ResourceManifest";
 import { Scene1 } from "./Scene1";
 
@@ -6,6 +6,8 @@ export class Scene2 implements IScene {
     private background: Renderable
     private redRect: Renderable
     private whiteSquare: Renderable
+    private minionCollector!: Renderable
+    private minionPortal!: Renderable
 
     public constructor() {
         this.background = new Renderable("Background")
@@ -29,6 +31,20 @@ export class Scene2 implements IScene {
         this.whiteSquare.setPos({
             x: gEngine.width / 2 - 14 * this.whiteSquare.width / 20,
             y: gEngine.height / 2,
+        })
+
+        this.minionCollector = new TextureRenderable("bird 1")
+            .setTexture(50, 50, ResourceManifest["scene1"]["minion_collector"].url)
+        this.minionCollector.setPos({
+            x: gEngine.width / 4 - this.minionCollector.width / 2,
+            y: gEngine.height / 2 - this.minionCollector.height / 2,
+        })
+
+        this.minionPortal = new TextureRenderable("bird 2")
+            .setTexture(50, 50, ResourceManifest["scene1"]["minion_portal"].url)
+        this.minionPortal.setPos({
+            x: 3 * gEngine.width / 4 - this.minionPortal.width / 2,
+            y: gEngine.height / 2 - this.minionPortal.height / 2,
         })
 
         this.init()
@@ -56,6 +72,8 @@ export class Scene2 implements IScene {
         return [
             this.background,
             this.whiteSquare,
+            this.minionCollector,
+            this.minionPortal,
             this.redRect
         ]
     }

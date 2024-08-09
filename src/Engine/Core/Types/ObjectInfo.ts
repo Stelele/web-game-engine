@@ -1,5 +1,5 @@
 
-export type IRenderableType = 'primitive' | 'texture'
+export type IRenderableType = 'primitive' | 'texture' | 'animated-texture'
 export interface ISamplerType {
     addressModeU: 'repeat' | 'clamp-to-edge'
     addressModeV: 'repeat' | 'clamp-to-edge'
@@ -25,6 +25,13 @@ export type IObjectInfo = IObjectInfoBase & ({
     textureUVsBuffer: GPUBuffer
     texture: GPUTexture
     samplerType: ISamplerType
+} | {
+    type: 'animated-texture'
+    textureUVsData: () => number[]
+    textureUVs: Float32Array
+    textureUVsBuffer: GPUBuffer
+    texture: GPUTexture
+    samplerType: ISamplerType
 })
 
 type IObjectInfoRequestBase = {
@@ -39,6 +46,11 @@ export type IObjectInfoRequest = IObjectInfoRequestBase & ({
 } | {
     type: 'texture'
     textureUVs: number[]
+    imageBitmap: ImageBitmap
+    samplerType: ISamplerType
+} | {
+    type: 'animated-texture'
+    textureUVs: () => number[]
     imageBitmap: ImageBitmap
     samplerType: ISamplerType
 })

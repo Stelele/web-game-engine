@@ -1,4 +1,4 @@
-import { Renderable } from "./Renderable";
+import { Renderable } from "./Renderables/Renderable";
 import { IScene } from "./Scene";
 import { IObjectInfo, IRenderableType, ISamplerType } from './Types/ObjectInfo'
 import { IViewPortInfo, IViewPortInfoRequest } from './Types/ViewPort'
@@ -171,7 +171,7 @@ export class Renderer {
                 label: `Bind Group Layout: ${type}`,
                 entries: baseEntries
             })
-        } else if (type === 'texture') {
+        } else if (type === 'texture' || type === 'animated-texture') {
             this.bindGroupLayouts[type] = this.device.createBindGroupLayout({
                 label: `Bind Group Layout: ${type}`,
                 entries: [
@@ -208,7 +208,7 @@ export class Renderer {
             }
         ]
 
-        if (type === 'texture') {
+        if (type === 'texture' || type === 'animated-texture') {
             buffers.push({
                 arrayStride: 2 * 4,
                 attributes: [
@@ -238,7 +238,7 @@ export class Renderer {
             { binding: 2, resource: { buffer: this.worldDimensionsUniform } },
         ]
 
-        if (objectInfo.type === 'texture') {
+        if (objectInfo.type === 'texture' || objectInfo.type === 'animated-texture') {
             const sampler = this.samplers[this.getSamplerIndex(objectInfo.samplerType)]
             entries.push({ binding: 3, resource: sampler })
             entries.push({ binding: 4, resource: objectInfo.texture.createView() })
@@ -307,6 +307,23 @@ export class Renderer {
                 transformationUniform: transformBuffer,
                 texture: textureInfo.texture,
                 textureUVs: textureInfo.uvData,
+                textureUVsBuffer: textureInfo.uvBuffer,
+                samplerType: info.samplerType,
+                draw: info.draw,
+            })
+        } else if (info.type === 'animated-texture') {
+            const textureInfo = this.getTextureInfo(info.name, info.imageBitmap, info.textureUVs())
+            this.objectInfos.push({
+                type: 'animated-texture',
+                name: info.name,
+                vertexData: vertexInfo.vertices,
+                vertexBuffer: vertexInfo.buffer,
+                fillColor: colorInfo.color,
+                fillColorUniform: colorInfo.buffer,
+                transformationUniform: transformBuffer,
+                texture: textureInfo.texture,
+                textureUVs: textureInfo.uvData,
+                textureUVsData: info.textureUVs,
                 textureUVsBuffer: textureInfo.uvBuffer,
                 samplerType: info.samplerType,
                 draw: info.draw,
@@ -498,6 +515,10 @@ export class Renderer {
             pass.setVertexBuffer(0, objectInfo.vertexBuffer)
             if (objectInfo.type === 'texture') {
                 pass.setVertexBuffer(1, objectInfo.textureUVsBuffer)
+                this.device.queue.writeBuffer(objectInfo.textureUVsBuffer, 0, objectInfo.textureUVs)
+            } else if (objectInfo.type === 'animated-texture') {
+                pass.setVertexBuffer(1, objectInfo.textureUVsBuffer)
+                objectInfo.textureUVs.set(objectInfo.textureUVsData())
                 this.device.queue.writeBuffer(objectInfo.textureUVsBuffer, 0, objectInfo.textureUVs)
             }
             pass.draw(objectInfo.vertexData.length / 2)
