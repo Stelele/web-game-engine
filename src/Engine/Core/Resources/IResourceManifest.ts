@@ -2,7 +2,13 @@ export interface IResourceManifest {
     [key: string]: Record<string, IResource>
 }
 
-export interface IResource {
+interface IResourceBase {
     url: string
-    type: "sound" | "text" | "image"
 }
+
+export type IResource = IResourceBase & (
+    { type: "sound" } |
+    { type: "text"; format: "text" | "xml" } |
+    { type: "image" } |
+    { type: "font" }
+) 

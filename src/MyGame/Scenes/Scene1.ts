@@ -1,14 +1,14 @@
-import { AnimatedTextureRenderable, AudioLoader, gEngine, IScene, Renderable, TextureRenderable } from "../../Engine";
+import { AnimatedTextureRenderable, AudioLoader, gEngine, IScene, Renderable, TextRenderable, TextureRenderable } from "../../Engine";
 import { ResourceManifest } from "../ResourceManifest";
 
 export class Scene1 implements IScene {
     private background: Renderable
-    private background2: TextureRenderable
     private dye: Renderable
     private minionCollector!: TextureRenderable
     private minionPortal!: TextureRenderable
     private minionShip!: AnimatedTextureRenderable
     private minionShip2!: AnimatedTextureRenderable
+    private text!: TextRenderable
 
     private startMoving = false
     private moveSpeed = -2
@@ -18,14 +18,6 @@ export class Scene1 implements IScene {
         this.background = new Renderable("Background")
             .rect(gEngine.width, gEngine.height)
             .setColor([0.8, 0.8, 0.8, 1])
-
-        this.background2 = new TextureRenderable("Background 2")
-            .setTexture(
-                gEngine.width / 4,
-                gEngine.height / 2,
-                ResourceManifest["scene1"]["consolas72"].url
-            )
-            .setPos({ x: 20, y: 20 })
 
         const atlas = { width: 1024, height: 512, image: ResourceManifest["scene1"]["minion_sprite"].url }
         this.dye = new TextureRenderable("Dye (the hero)")
@@ -92,6 +84,14 @@ export class Scene1 implements IScene {
         this.minionShip2.setPos({
             x: 3 * gEngine.width / 4 - this.minionShip.width / 2,
             y: gEngine.height - this.minionShip.height - 20
+        })
+
+        this.text = new TextRenderable("Text")
+        // this.text.setFont(16, ResourceManifest["scene1"]["segment7-96"].url)
+        this.text.setText("abcdef\nabc\nAa\nPacMan Test")
+        this.text.setPos({
+            x: gEngine.width / 2 - this.text.width / 2,
+            y: gEngine.height / 2 - this.text.height / 2
         })
 
         this.init()
@@ -162,11 +162,7 @@ export class Scene1 implements IScene {
     public getRenderables() {
         return [
             this.background,
-            this.background2,
-            this.minionShip,
-            this.minionShip2,
-            this.minionCollector,
-            this.minionPortal,
+            this.text,
             this.dye,
         ]
     }

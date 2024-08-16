@@ -40,13 +40,13 @@ export class TextureRenderable extends Renderable {
             this.imageBitmap = imageBitmap
         }
 
-        const x = elementInfo.x / atlas.width
-        const y = elementInfo.y / atlas.height
-        const xW = x + elementInfo.width / atlas.width
-        const yH = y + elementInfo.height / atlas.height
+        const xS = elementInfo.x / atlas.width
+        const yS = elementInfo.y / atlas.height
+        const xE = (elementInfo.x + elementInfo.width) / atlas.width
+        const yE = (elementInfo.y + elementInfo.height) / atlas.height
         this.imageUVs = [
-            x, y, x, yH, xW, y,
-            x, yH, xW, yH, xW, y
+            xS, yS, xS, yE, xE, yS,
+            xS, yE, xE, yE, xE, yS
         ]
 
         return this

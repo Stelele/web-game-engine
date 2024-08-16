@@ -15,18 +15,7 @@ export async function main() {
 }
 
 async function loadAssets() {
-    const promises: Array<Promise<void>> = []
-    for (const group in ResourceManifest) {
-        for (const asset in ResourceManifest[group]) {
-            if (ResourceManifest[group][asset].type === "sound") {
-                promises.push(AudioLoader.loadAudio(ResourceManifest[group][asset].url))
-            } else if (ResourceManifest[group][asset].type === "image") {
-                promises.push(ImageLoader.loadImageAsBitMap(ResourceManifest[group][asset].url))
-            }
-        }
-    }
-
-    await Promise.all(promises)
+    await gEngine.loadResourcesFromManifest(ResourceManifest)
     AudioLoader.playOnRepeat(ResourceManifest["background"]["bgClip"].url)
 }
 

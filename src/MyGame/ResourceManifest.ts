@@ -10,6 +10,8 @@ export const ResourceManifest: IResourceManifest = {
         "minion_portal": { url: "/Images/minion_portal.png", type: "image" },
         "minion_sprite": { url: "/Images/minion_sprite.png", type: "image" },
         "consolas72": { url: "/Images/consolas-72.png", type: "image" },
+        "defaultFont": { url: "/Fonts/system_default_font", type: "font" },
+        "segment7-96": { url: "/Fonts/segment7-96", type: "font" }
     },
     "scene2": {
         "redLevelCue": { url: "/Sounds/my_game_cue.wav", type: "sound" },

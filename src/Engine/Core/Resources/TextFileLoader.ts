@@ -35,6 +35,10 @@ export class TextFileLoader {
         }
     }
 
+    public static fetchTextFile(fileName: string) {
+        return gEngine.ResourceManager.retrieveAsset<string | XMLDocument>(fileName)
+    }
+
     public static async unloadTextfile(fileName: string) {
         gEngine.ResourceManager.unloadAsset(fileName)
     }
