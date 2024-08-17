@@ -25,6 +25,8 @@ export type IObjectInfo = IObjectInfoBase & ({
     textureUVsBuffer: GPUBuffer
     texture: GPUTexture
     samplerType: ISamplerType
+    reColorImage: boolean
+    flags: GPUBuffer
 } | {
     type: 'animated-texture'
     textureUVsData: () => number[]
@@ -32,6 +34,8 @@ export type IObjectInfo = IObjectInfoBase & ({
     textureUVsBuffer: GPUBuffer
     texture: GPUTexture
     samplerType: ISamplerType
+    reColorImage: boolean
+    flags: GPUBuffer
 })
 
 type IObjectInfoRequestBase = {
@@ -48,9 +52,11 @@ export type IObjectInfoRequest = IObjectInfoRequestBase & ({
     textureUVs: number[]
     imageBitmap: ImageBitmap
     samplerType: ISamplerType
+    reColorImage: boolean
 } | {
     type: 'animated-texture'
     textureUVs: () => number[]
     imageBitmap: ImageBitmap
     samplerType: ISamplerType
+    reColorImage: boolean
 })

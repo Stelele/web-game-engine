@@ -1,6 +1,6 @@
 import { Renderable } from "./Renderables/Renderable";
 import { IScene } from "./Scene";
-import { IObjectInfo, IRenderableType, ISamplerType } from './Types/ObjectInfo'
+import { IObjectInfo, IObjectInfoRequest, IRenderableType, ISamplerType } from './Types/ObjectInfo'
 import { IViewPortInfo, IViewPortInfoRequest } from './Types/ViewPort'
 
 export class Renderer {
@@ -16,6 +16,7 @@ export class Renderer {
     private objectInfos!: Array<IObjectInfo>
     private worldDimensions!: Float32Array
     private worldDimensionsUniform!: GPUBuffer
+    private resolutionUniform!: GPUBuffer
     private viewPort?: IViewPortInfoRequest
     private curScene!: IScene
 
@@ -164,6 +165,11 @@ export class Renderer {
                 visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                 buffer: { type: "uniform" }
             },
+            {
+                binding: 3,
+                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                buffer: { type: "uniform" }
+            },
         ]
 
         if (type === 'primitive') {
@@ -177,14 +183,19 @@ export class Renderer {
                 entries: [
                     ...baseEntries,
                     {
-                        binding: 3,
+                        binding: 10,
                         visibility: GPUShaderStage.FRAGMENT,
                         sampler: {}
                     },
                     {
-                        binding: 4,
+                        binding: 11,
                         visibility: GPUShaderStage.FRAGMENT,
                         texture: {}
+                    },
+                    {
+                        binding: 12,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: { type: 'uniform' }
                     }
                 ]
             })
@@ -236,12 +247,14 @@ export class Renderer {
             { binding: 0, resource: { buffer: objectInfo.fillColorUniform } },
             { binding: 1, resource: { buffer: objectInfo.transformationUniform } },
             { binding: 2, resource: { buffer: this.worldDimensionsUniform } },
+            { binding: 3, resource: { buffer: this.resolutionUniform } }
         ]
 
         if (objectInfo.type === 'texture' || objectInfo.type === 'animated-texture') {
             const sampler = this.samplers[this.getSamplerIndex(objectInfo.samplerType)]
-            entries.push({ binding: 3, resource: sampler })
-            entries.push({ binding: 4, resource: objectInfo.texture.createView() })
+            entries.push({ binding: 10, resource: sampler })
+            entries.push({ binding: 11, resource: objectInfo.texture.createView() })
+            entries.push({ binding: 12, resource: { buffer: objectInfo.flags } })
         }
 
         return this.device.createBindGroup({
@@ -284,6 +297,7 @@ export class Renderer {
         const colorInfo = this.getFillColorInfo(info.fillColor, info.name)
         const transformBuffer = this.getTransformationBuffer(info.name)
 
+
         if (info.type === 'primitive') {
             this.objectInfos.push({
                 type: 'primitive',
@@ -309,6 +323,8 @@ export class Renderer {
                 textureUVs: textureInfo.uvData,
                 textureUVsBuffer: textureInfo.uvBuffer,
                 samplerType: info.samplerType,
+                reColorImage: info.reColorImage,
+                flags: this.getTextureFlags(info),
                 draw: info.draw,
             })
         } else if (info.type === 'animated-texture') {
@@ -326,6 +342,8 @@ export class Renderer {
                 textureUVsData: info.textureUVs,
                 textureUVsBuffer: textureInfo.uvBuffer,
                 samplerType: info.samplerType,
+                reColorImage: info.reColorImage,
+                flags: this.getTextureFlags(info),
                 draw: info.draw,
             })
         }
@@ -410,6 +428,23 @@ export class Renderer {
         }
     }
 
+    private getTextureFlags(info: IObjectInfoRequest) {
+        const flags = new Uint32Array([0])
+        if (info.type === 'texture' && info.reColorImage) {
+            flags[0] = flags[0] | 1
+        }
+
+        const buffer = this.device.createBuffer({
+            label: `Flags Uniform: ${info.name}`,
+            size: flags.byteLength,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        })
+
+        this.device.queue.writeBuffer(buffer, 0, flags)
+
+        return buffer
+    }
+
     private configWorldProperties(width: number, height: number) {
         this.worldDimensions = new Float32Array([width, height])
         this.worldDimensionsUniform = this.device.createBuffer({
@@ -418,6 +453,14 @@ export class Renderer {
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         })
         this.device.queue.writeBuffer(this.worldDimensionsUniform, 0, this.worldDimensions)
+
+        const resolution = new Float32Array([this.canvas.width, this.canvas.height])
+        this.resolutionUniform = this.device.createBuffer({
+            label: "Resoultion Uniform",
+            size: resolution.byteLength,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        })
+        this.device.queue.writeBuffer(this.resolutionUniform, 0, resolution)
     }
 
     private startAnimation(targetFps: number, renderer: Renderer) {
@@ -505,6 +548,8 @@ export class Renderer {
         let v = this.getViewPortInfo()
         pass.setViewport(v.x, v.y, v.width, v.height, 0, 1)
         pass.setScissorRect(v.x, v.y, v.width, v.height)
+
+        this.device.queue.writeBuffer(this.resolutionUniform, 0, new Float32Array([this.canvas.width, this.canvas.height]))
 
         for (const objectInfo of this.objectInfos) {
             pass.setPipeline(this.pipelines[objectInfo.type])

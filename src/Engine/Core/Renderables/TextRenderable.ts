@@ -10,6 +10,7 @@ export class TextRenderable extends Renderable {
     public size!: number
     public letterSpacing = 2
     public lineSpacing = 2
+    private reColor = false
 
     constructor(name: string) {
         super(name)
@@ -48,28 +49,28 @@ export class TextRenderable extends Renderable {
     }
 
     public setText(text: string) {
-        if (!text.length) return
+        if (!text.length) return this
         this.text = text
 
+        let lineIndex = 0
         const lines = this.text.split('\n')
 
-        let lI = 0
+        const widths: number[] = []
         for (const line of lines) {
-            let cI = 0
-            for (const char of line.split('')) {
-                const imageUVs = this.fontUVs[char.charCodeAt(0)]
-                const charFont = this.font.chars[char.charCodeAt(0)]
+            let xPos = 0
 
-                const xOffset = this.size * charFont.xoffset / this.font.info.size
+            for (let i = 0; i < line.length; i++) {
+                const imageUVs = this.fontUVs[line.charCodeAt(i)]
+                const charFont = this.font.chars[line.charCodeAt(i)]
+
                 const yOffset = this.size * charFont.yoffset / this.font.common.lineHeight
 
-                const x = (this.size + this.letterSpacing) * cI
-                const y = (this.size + this.lineSpacing) * lI
+                const xS = xPos
+                const yS = yOffset + (this.size + this.lineSpacing) * lineIndex
+                const xE = xS + Math.ceil(this.size * charFont.width / this.font.info.size)
+                const yE = yS + Math.ceil(this.size * charFont.height / this.font.common.lineHeight)
 
-                const xS = x + xOffset
-                const yS = y + yOffset
-                const xE = x + this.size
-                const yE = y + this.size
+                xPos = xE + this.letterSpacing
 
                 const vertices = [
                     xS, yS,
@@ -80,18 +81,25 @@ export class TextRenderable extends Renderable {
                     xE, yS,
                 ]
 
+
                 this.vertices.push(...vertices)
                 this.imageUVs.push(...imageUVs)
-                cI += 1
             }
 
-            lI += 1
+            widths.push(xPos)
+            lineIndex += 1
         }
 
-        this.width = Math.max(...lines.map((l) => l.length * this.size + (l.length - 1) * this.letterSpacing))
+
+        this.width = Math.max(...widths)
         this.height = lines.length * this.size + (lines.length - 1) * this.lineSpacing
 
         return this
+    }
+
+    public override setColor(col?: number[]): this {
+        this.reColor = true
+        return super.setColor(col)
     }
 
     public override getObjectInfo(): IObjectInfoRequest {
@@ -107,6 +115,7 @@ export class TextRenderable extends Renderable {
                 addressModeV: 'clamp-to-edge',
                 magFilter: 'nearest',
             },
+            reColorImage: this.reColor,
             draw: this.draw.bind(this),
         }
     }

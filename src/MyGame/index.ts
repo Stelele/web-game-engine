@@ -16,6 +16,5 @@ export async function main() {
 
 async function loadAssets() {
     await gEngine.loadResourcesFromManifest(ResourceManifest)
-    AudioLoader.playOnRepeat(ResourceManifest["background"]["bgClip"].url)
 }
 

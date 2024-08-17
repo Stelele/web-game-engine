@@ -37,6 +37,7 @@ export class gEngine {
         }
 
         await this._Renderer.init(this.width, this.height)
+        await FontLoader.loadBitmapFont("/Fonts/system_default_font")
         this.GL.loadShaders(SimpleVS, SimpleFS, 'primitive')
         this.GL.loadShaders(TextureVS, TextureFS, 'texture')
         this.GL.loadShaders(TextureVS, TextureFS, 'animated-texture')

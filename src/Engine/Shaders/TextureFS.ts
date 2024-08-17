@@ -8,11 +8,16 @@ export const TextureFS = /* wgsl */ `
 
     @fragment
     fn fs(in: VertexOut) -> @location(0) vec4f {
-        var sample = textureSample(texture, gSampler, in.texUV);
-        if(sample.a <= 0.05) {
+        var pixel = textureSample(texture, gSampler, in.texUV);
+        if(pixel.a <= 0.05) {
             discard;
         }
+
+        var test = flags & 1;
+        if(test == 0) {
+            return pixel;
+        }
         
-        return sample;
+        return color;
     }
 `
