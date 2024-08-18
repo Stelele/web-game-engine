@@ -65,6 +65,7 @@ export class TextureRenderable extends Renderable {
                 addressModeV: 'clamp-to-edge',
                 magFilter: 'nearest',
             },
+            reColorImage: false,
             draw: this.draw.bind(this),
         }
     }

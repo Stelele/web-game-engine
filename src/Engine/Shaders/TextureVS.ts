@@ -25,7 +25,7 @@ export const TexturevS = /* wgsl */ `
         var pos = worldToClipSpaceTransformation(in.pos);
         
         var out: VertexOut;
-        out.pos = vec4f(pos, 0, 1);
+        out.pos = worldToClipSpaceTransformation(in.pos);
         out.texUV = in.texUV;
 
         return out;

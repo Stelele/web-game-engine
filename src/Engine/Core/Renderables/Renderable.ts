@@ -1,4 +1,4 @@
-import { Mat3 } from "../../Utilities/Mat3";
+import { Mat4 } from "../../Utilities/Mat4";
 import { IObjectInfoRequest } from "../Types/ObjectInfo";
 
 export class Renderable {
@@ -69,11 +69,7 @@ export class Renderable {
 
     private get scaleMat() {
         const s = this.scale
-        return new Mat3([
-            s, 0, 0,
-            0, s, 0,
-            0, 0, 1,
-        ])
+        return Mat4.scaleMat([s, s, 1])
 
     }
 
@@ -90,13 +86,7 @@ export class Renderable {
     }
 
     private get rotateMat() {
-        const s = Math.sin(this.rotation)
-        const c = Math.cos(this.rotation)
-        return new Mat3([
-            c, -s, 0,
-            s, c, 0,
-            0, 0, 1,
-        ])
+        return Mat4.rotateZMat(-this.rotation)
     }
 
     public setPos(pos: { x?: number, y?: number } = {}) {
@@ -109,21 +99,22 @@ export class Renderable {
     public incPos(pos: { x?: number, y?: number }) {
         this.x += pos.x ?? 0
         this.y += pos.y ?? 0
+
+        return this
     }
 
     private get translateMat() {
-        return new Mat3([
-            1, 0, 0,
-            0, 1, 0,
-            this.x, this.y, 1,
-        ])
+        return Mat4.translateMat([this.x, this.y, 0])
     }
 
     private getMatrix() {
-        return this.scaleMat
-            .matMul(this.rotateMat)
-            .matMul(this.translateMat)
-            .Value
+        return Mat4.matMul(
+            this.scaleMat,
+            Mat4.matMul(
+                this.rotateMat,
+                this.translateMat
+            )
+        ).Value
     }
 
     public getObjectInfo(): IObjectInfoRequest {

@@ -1,3 +1,4 @@
+import { Mat4 } from "../Utilities/Mat4";
 import { Renderable } from "./Renderables/Renderable";
 import { IScene } from "./Scene";
 import { IObjectInfo, IObjectInfoRequest, IRenderableType, ISamplerType } from './Types/ObjectInfo'
@@ -16,18 +17,13 @@ export class Renderer {
     private objectInfos!: Array<IObjectInfo>
     private worldDimensions!: Float32Array
     private worldDimensionsUniform!: GPUBuffer
+    private vpMat!: Float32Array
+    private vpMatUniform!: GPUBuffer
     private resolutionUniform!: GPUBuffer
     private viewPort?: IViewPortInfoRequest
     private curScene!: IScene
 
     constructor(private canvas: HTMLCanvasElement) { }
-
-    public get canvasDimensions() {
-        return {
-            width: Math.floor(this.canvas.width),
-            height: Math.floor(this.canvas.height)
-        }
-    }
 
     public async init(worldWidth: number, worldHeight: number) {
         this.objectInfos = []
@@ -149,28 +145,14 @@ export class Renderer {
     }
 
     private configureBindGroupLayout(type: IRenderableType) {
-        const baseEntries: Iterable<GPUBindGroupLayoutEntry> = [
-            {
-                binding: 0,
+        const baseEntries: Array<GPUBindGroupLayoutEntry> = []
+        for (let i = 0; i < 5; i++) {
+            baseEntries.push({
+                binding: i,
                 visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                 buffer: { type: "uniform" }
-            },
-            {
-                binding: 1,
-                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                buffer: { type: "uniform" }
-            },
-            {
-                binding: 2,
-                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                buffer: { type: "uniform" }
-            },
-            {
-                binding: 3,
-                visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                buffer: { type: "uniform" }
-            },
-        ]
+            })
+        }
 
         if (type === 'primitive') {
             this.bindGroupLayouts[type] = this.device.createBindGroupLayout({
@@ -247,7 +229,8 @@ export class Renderer {
             { binding: 0, resource: { buffer: objectInfo.fillColorUniform } },
             { binding: 1, resource: { buffer: objectInfo.transformationUniform } },
             { binding: 2, resource: { buffer: this.worldDimensionsUniform } },
-            { binding: 3, resource: { buffer: this.resolutionUniform } }
+            { binding: 3, resource: { buffer: this.resolutionUniform } },
+            { binding: 4, resource: { buffer: this.vpMatUniform } }
         ]
 
         if (objectInfo.type === 'texture' || objectInfo.type === 'animated-texture') {
@@ -389,7 +372,7 @@ export class Renderer {
     private getTransformationBuffer(name: string) {
         const transformBuffer = this.device.createBuffer({
             label: `World Transformation Buffer: ${name}`,
-            size: 12 * 4,
+            size: 16 * 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         })
 
@@ -461,6 +444,39 @@ export class Renderer {
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         })
         this.device.queue.writeBuffer(this.resolutionUniform, 0, resolution)
+
+        this.setViewProjection(
+            [width / 2, height / 2],
+            width / 2,
+            width / 2,
+            height / 2,
+            height / 2
+        )
+    }
+
+    private setViewProjection([cx, cy]: number[], distToLeft: number, distToRight: number, distToBottom: number, distToTop: number) {
+        const viewMat = Mat4.lookAt(
+            [cx, cy, 10],
+            [cx, cy, 0],
+            [0, 1, 0]
+        )
+
+        const projMat = Mat4.ortho(
+            -distToLeft,
+            distToRight,
+            -distToBottom,
+            distToTop,
+            0,
+            1000
+        )
+
+        this.vpMat = new Float32Array(Mat4.matMul(viewMat, projMat).Value)
+        this.vpMatUniform = this.device.createBuffer({
+            label: "View-Projection Matrix",
+            size: this.vpMat.byteLength,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        })
+        this.device.queue.writeBuffer(this.vpMatUniform, 0, this.vpMat)
     }
 
     private startAnimation(targetFps: number, renderer: Renderer) {
@@ -511,11 +527,7 @@ export class Renderer {
 
     private getTransformArray(objectInfo: IObjectInfo) {
         const transformation = objectInfo.draw()
-        const transformationArray = new Float32Array(12)
-        transformationArray.set(transformation.slice(0, 3), 0)
-        transformationArray.set(transformation.slice(3, 6), 4)
-        transformationArray.set(transformation.slice(6), 8)
-
+        const transformationArray = new Float32Array(transformation)
         return transformationArray
     }
 

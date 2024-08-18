@@ -71,7 +71,7 @@ export class Scene1 implements IScene {
         this.segment7 = new TextRenderable("Segment 92 Text Font")
             .setFont(92, ResourceManifest["font"]["segment7"].url)
             .setText("Segment7-92")
-            .setColor([1, 1, 1, 1])
+            .setColor([1, 0, 1, 1])
         this.segment7.setPos({
             x: gEngine.width / 2 - this.segment7.width / 2,
             y: this.consolas72Text.y + this.consolas72Text.height + 20
@@ -96,7 +96,7 @@ export class Scene1 implements IScene {
             this.consolas24Text,
             this.consolas32Text,
             this.consolas72Text,
-            this.segment7
+            this.segment7,
         ]
     }
 
