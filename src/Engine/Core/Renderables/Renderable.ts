@@ -56,6 +56,15 @@ export class Renderable {
         return this
     }
 
+    public setColorHSB([h, s, b]: number[]) {
+        const [t1x, t1y, t1z] = [0, 4, 2]
+            .map((x) => this.clamp(Math.abs(((x + h * 6) % 6) - 3) - 1, 0, 1))
+    }
+
+    private clamp(val: number, min: number, max: number) {
+        return Math.min(max, Math.max(val, min))
+    }
+
     public setScale(size?: number) {
         let s = size
         if (!s) { s = 1 }

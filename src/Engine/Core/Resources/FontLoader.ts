@@ -1,6 +1,6 @@
-import { gEngine } from "../EngineCore"
 import { ImageLoader } from "./ImageLoader"
 import { TextFileLoader, TextFileType } from "./TextFileLoader"
+import { ResourceMap } from "./ResourceMap"
 
 export interface IPadding {
     left: number
@@ -66,12 +66,12 @@ export class FontLoader {
     private constructor() { }
 
     public static async loadBitmapFont(fontName: string) {
-        if (gEngine.ResourceManager.isAssetLoaded(fontName)) {
-            gEngine.ResourceManager.incAssetRefCount(fontName)
+        if (ResourceMap.isAssetLoaded(fontName)) {
+            ResourceMap.incAssetRefCount(fontName)
             return
         }
 
-        gEngine.ResourceManager.asyncLoadRequested(fontName)
+        ResourceMap.asyncLoadRequested(fontName)
 
         const atlasName = `${fontName}.png`
         const infoName = `${fontName}.fnt`
@@ -96,7 +96,7 @@ export class FontLoader {
         const chars = getFontChars()
 
         const font: IFont = { info, common, chars, atlas }
-        gEngine.ResourceManager.asyncLoadCompleted(fontName, font)
+        ResourceMap.asyncLoadCompleted(fontName, font)
 
         function getFontInfo(): IFontInfo {
             const infoNode = nodes["info"]
@@ -194,10 +194,10 @@ export class FontLoader {
     }
 
     public static fetchBitmapFont(fontName: string) {
-        return gEngine.ResourceManager.retrieveAsset<IFont>(fontName)
+        return ResourceMap.retrieveAsset<IFont>(fontName)
     }
 
     public static unloadFont(fontName: string) {
-        gEngine.ResourceManager.unloadAsset(fontName)
+        ResourceMap.unloadAsset(fontName)
     }
 }

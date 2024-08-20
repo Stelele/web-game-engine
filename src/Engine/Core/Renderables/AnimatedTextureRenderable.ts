@@ -53,6 +53,7 @@ export class AnimatedTextureRenderable extends Renderable {
             vertexData: this.vertices,
             textureUVs: this.frame.bind(this),
             imageBitmap: this.imageBitmap,
+            reColorImage: false,
             samplerType: {
                 addressModeU: 'clamp-to-edge',
                 addressModeV: 'clamp-to-edge',
@@ -91,12 +92,13 @@ export class AnimatedTextureRenderable extends Renderable {
     public animateAndDraw() {
         const temp = new Date()
         if (temp.getTime() - this.curTime.getTime() > this.animationSpeedMs) {
-            this.curAnimationIndex = Math.abs(
-                (this.curAnimationIndex + this.incFrameValue) %
-                this.animations[this.curAnimation].length
-            )
+            let index = this.curAnimationIndex + this.incFrameValue
+            if (index < 0) { index = this.animations[this.curAnimation].length - 1 }
+            if (index >= this.animations[this.curAnimation].length) { index = 0 }
+            this.curAnimationIndex = index
             this.curTime = new Date()
         }
+
         return this.draw()
     }
 }

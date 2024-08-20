@@ -1,4 +1,4 @@
-import { gEngine } from "../EngineCore";
+import { ResourceMap } from "./ResourceMap";
 
 export enum TextFileType {
     XMLFile = 0,
@@ -9,7 +9,7 @@ export class TextFileLoader {
     private constructor() { }
 
     public static async loadTextFile(fileName: string, fileType: TextFileType, callbackFunc?: (fileName: string) => void) {
-        if (gEngine.ResourceManager.isAssetLoaded(fileName)) {
+        if (ResourceMap.isAssetLoaded(fileName)) {
             if (callbackFunc) {
                 callbackFunc(fileName)
             }
@@ -17,7 +17,7 @@ export class TextFileLoader {
             return
         }
 
-        gEngine.ResourceManager.asyncLoadRequested(fileName)
+        ResourceMap.asyncLoadRequested(fileName)
         const response = await fetch(fileName)
 
         let fileContent: string | Document
@@ -28,7 +28,7 @@ export class TextFileLoader {
             fileContent = await response.text()
         }
 
-        gEngine.ResourceManager.asyncLoadCompleted(fileName, fileContent)
+        ResourceMap.asyncLoadCompleted(fileName, fileContent)
 
         if (callbackFunc) {
             callbackFunc(fileName)
@@ -36,10 +36,10 @@ export class TextFileLoader {
     }
 
     public static fetchTextFile(fileName: string) {
-        return gEngine.ResourceManager.retrieveAsset<string | XMLDocument>(fileName)
+        return ResourceMap.retrieveAsset<string | XMLDocument>(fileName)
     }
 
     public static async unloadTextfile(fileName: string) {
-        gEngine.ResourceManager.unloadAsset(fileName)
+        ResourceMap.unloadAsset(fileName)
     }
 }

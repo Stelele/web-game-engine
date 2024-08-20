@@ -1,29 +1,29 @@
-import { gEngine } from "../EngineCore";
+import { ResourceMap } from "./ResourceMap";
 
 export class ImageLoader {
     private constructor() { }
 
     public static async loadImageAsBitMap(imageName: string) {
-        if (gEngine.ResourceManager.isAssetLoaded(imageName)) {
-            gEngine.ResourceManager.incAssetRefCount(imageName)
+        if (ResourceMap.isAssetLoaded(imageName)) {
+            ResourceMap.incAssetRefCount(imageName)
             return
         }
 
-        gEngine.ResourceManager.asyncLoadRequested(imageName)
+        ResourceMap.asyncLoadRequested(imageName)
 
         const response = await fetch(imageName)
         const blob = await response.blob()
 
         const bitMap = await createImageBitmap(blob, { colorSpaceConversion: 'none' })
 
-        gEngine.ResourceManager.asyncLoadCompleted(imageName, bitMap)
+        ResourceMap.asyncLoadCompleted(imageName, bitMap)
     }
 
     public static unloadImage(imageName: string) {
-        gEngine.ResourceManager.unloadAsset(imageName)
+        ResourceMap.unloadAsset(imageName)
     }
 
     public static fetchImage(imageName: string) {
-        return gEngine.ResourceManager.retrieveAsset<ImageBitmap>(imageName)
+        return ResourceMap.retrieveAsset<ImageBitmap>(imageName)
     }
 }

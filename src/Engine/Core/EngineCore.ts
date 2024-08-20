@@ -4,8 +4,7 @@ import { TextureFS } from "../Shaders/TextureFS"
 import { TexturevS as TextureVS } from "../Shaders/TextureVS"
 import { InputHandler } from "./InputHandler"
 import { Renderer } from "./Renderer"
-import { AudioLoader, FontLoader, ImageLoader, IResource, IResourceManifest, TextFileLoader, TextFileType } from "./Resources"
-import { ResourceMap } from "./Resources/ResourceMap"
+import { ResourceManager } from "./Resources/ResourceManager"
 
 export class gEngine {
     private constructor() { }
@@ -18,7 +17,7 @@ export class gEngine {
     public static get Input() { return InputHandler }
 
     // resource manager
-    public static get ResourceManager() { return ResourceMap }
+    public static get Resource() { return ResourceManager }
 
     private static _width: number = 640
     private static _height: number = 360
@@ -37,44 +36,10 @@ export class gEngine {
         }
 
         await this._Renderer.init(this.width, this.height)
-        await FontLoader.loadBitmapFont("/Fonts/system_default_font")
+        await this.Resource.Font.loadBitmapFont("/Fonts/system_default_font")
         this.GL.loadShaders(SimpleVS, SimpleFS, 'primitive')
         this.GL.loadShaders(TextureVS, TextureFS, 'texture')
         this.GL.loadShaders(TextureVS, TextureFS, 'animated-texture')
-    }
-
-    public static async loadResourcesFromManifest(manifest: IResourceManifest) {
-        const promises: Promise<unknown>[] = []
-        for (const batch in manifest) {
-            for (const asset in manifest[batch]) {
-                promises.push(this.loadResource(manifest[batch][asset]))
-            }
-        }
-
-        await Promise.all(promises)
-    }
-
-    public static async loadResource(resource: IResource) {
-        if (resource.type === 'font') {
-            await FontLoader.loadBitmapFont(resource.url)
-            return
-        }
-
-        if (resource.type === 'image') {
-            await ImageLoader.loadImageAsBitMap(resource.url)
-            return
-        }
-
-        if (resource.type === 'sound') {
-            await AudioLoader.loadAudio(resource.url)
-            return
-        }
-
-        if (resource.type === 'text') {
-            const format = resource.format === 'text' ? TextFileType.TextFile : TextFileType.XMLFile
-            await TextFileLoader.loadTextFile(resource.url, format)
-            return
-        }
     }
 
     public static setWorldDimensions(width: number) {

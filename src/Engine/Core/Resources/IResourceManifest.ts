@@ -6,6 +6,7 @@ interface IResourceBase {
     url: string
 }
 
+export type IResourceType = "sound" | "text" | "image" | "font"
 export type IResource = IResourceBase & (
     { type: "sound" } |
     { type: "text"; format: "text" | "xml" } |

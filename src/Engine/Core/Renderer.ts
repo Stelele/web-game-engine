@@ -269,6 +269,12 @@ export class Renderer {
         this.objectInfos = []
         this.curScene = scene
 
+        const renderables = this.curScene.getRenderables()
+        if (!renderables.length) {
+            setTimeout((() => this.setScene(scene)).bind(this))
+            return
+        }
+
         for (const obj of this.curScene.getRenderables()) {
             this.addDrawObject(obj)
         }
