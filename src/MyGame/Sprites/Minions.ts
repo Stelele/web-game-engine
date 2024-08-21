@@ -23,11 +23,14 @@ export class Minions implements IRenderableSet {
         }
 
 
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 1; i++) {
             const minion = new AnimatedTextureRenderable(`Minion: ${i}`)
-                .loadAnimations(atlasInfo, animations, { width: 102, height: 82 })
+                .loadAnimations(atlasInfo, animations, { width: 50, height: 50 })
                 .setAnimationDirection('left-to-right')
 
+            minion.showBoundingBox = true
+            minion.speed = 1
+            minion.setFrontDirection([-1, 0])
             minion.setPos({
                 x: gEngine.width + Math.random() * 100,
                 y: Math.min(gEngine.height - minion.height, Math.max(0, Math.random() * gEngine.height))
@@ -39,15 +42,23 @@ export class Minions implements IRenderableSet {
 
     public update() {
         for (const minion of this.objects) {
-            minion.incPos({ x: -1 })
+            minion.incPos({
+                x: minion.curFrontDirection[0] * minion.speed,
+                y: minion.curFrontDirection[1] * minion.speed
+            })
             if (minion.x + minion.width < 0) {
                 minion.setPos({
-                    x: gEngine.width + Math.random() * 100,
+                    x: gEngine.width,
                     y: Math.min(gEngine.height - minion.height, Math.max(0, Math.random() * gEngine.height))
                 })
             }
-
             minion.update()
+        }
+    }
+
+    public chase(obj: Renderable, rate: number) {
+        for (const minion of this.objects) {
+            minion.rotateObjToPointTo(obj, rate)
         }
     }
 

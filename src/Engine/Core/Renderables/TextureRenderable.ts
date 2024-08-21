@@ -66,6 +66,7 @@ export class TextureRenderable extends Renderable {
                 magFilter: 'nearest',
             },
             reColorImage: false,
+            showBoundingBox: this.showBoundingBox,
             draw: this.draw.bind(this),
         }
     }

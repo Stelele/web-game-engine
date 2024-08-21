@@ -54,6 +54,7 @@ export class AnimatedTextureRenderable extends Renderable {
             textureUVs: this.frame.bind(this),
             imageBitmap: this.imageBitmap,
             reColorImage: false,
+            showBoundingBox: this.showBoundingBox,
             samplerType: {
                 addressModeU: 'clamp-to-edge',
                 addressModeV: 'clamp-to-edge',

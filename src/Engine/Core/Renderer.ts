@@ -313,6 +313,7 @@ export class Renderer {
                 textureUVsBuffer: textureInfo.uvBuffer,
                 samplerType: info.samplerType,
                 reColorImage: info.reColorImage,
+                showBoundingBox: info.showBoundingBox,
                 flags: this.getTextureFlags(info),
                 draw: info.draw,
             })
@@ -332,6 +333,7 @@ export class Renderer {
                 textureUVsBuffer: textureInfo.uvBuffer,
                 samplerType: info.samplerType,
                 reColorImage: info.reColorImage,
+                showBoundingBox: info.showBoundingBox,
                 flags: this.getTextureFlags(info),
                 draw: info.draw,
             })
@@ -419,8 +421,13 @@ export class Renderer {
 
     private getTextureFlags(info: IObjectInfoRequest) {
         const flags = new Uint32Array([0])
-        if (info.type === 'texture' && info.reColorImage) {
-            flags[0] = flags[0] | 1
+        if (info.type === 'texture' || info.type === 'animated-texture') {
+            if (info.reColorImage) {
+                flags[0] = flags[0] | 1
+            }
+            if (info.showBoundingBox) {
+                flags[0] = flags[0] | (1 << 1)
+            }
         }
 
         const buffer = this.device.createBuffer({

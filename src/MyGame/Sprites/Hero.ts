@@ -20,11 +20,30 @@ export class Hero extends TextureRenderable {
             width: 50,
             height: 75,
         }
-
+        this.showBoundingBox = true
         this.setTextureFromAtlas(atlas, elementInfo, dimensions)
         this.setPos({
             x: gEngine.width / 2 - this.width / 2,
             y: gEngine.height / 2 - this.height / 2,
         })
+
+    }
+
+    public override update(): void {
+        if (gEngine.Input.keys["ArrowUp"]) {
+            this.incPos({ y: -2 })
+        }
+
+        if (gEngine.Input.keys["ArrowDown"]) {
+            this.incPos({ y: 2 })
+        }
+
+        if (gEngine.Input.keys["ArrowLeft"]) {
+            this.incPos({ x: -2 })
+        }
+
+        if (gEngine.Input.keys["ArrowRight"]) {
+            this.incPos({ x: 2 })
+        }
     }
 }

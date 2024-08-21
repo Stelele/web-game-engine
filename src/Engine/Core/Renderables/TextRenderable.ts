@@ -93,6 +93,8 @@ export class TextRenderable extends Renderable {
 
         this.width = Math.max(...widths)
         this.height = lines.length * this.size + (lines.length - 1) * this.lineSpacing
+        this.cx = this.x + this.width / 2
+        this.cy = this.y + this.height / 2
 
         return this
     }
