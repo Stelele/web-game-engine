@@ -203,10 +203,6 @@ export class Renderable {
         return this.boundingBox.collisionStatus(obj.boundingBox)
     }
 
-    public isPPColision(obj: Renderable) {
-        if (!this.isBBCollision(obj)) return false
-    }
-
     public rotateObjToPointTo(obj: Renderable, rate: number) {
         let dir = Vec2.subtract([obj.x, obj.y], [this.x, this.y])
         const len = Vec2.length(dir)

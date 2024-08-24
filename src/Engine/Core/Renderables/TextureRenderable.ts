@@ -52,6 +52,10 @@ export class TextureRenderable extends Renderable {
         return this
     }
 
+    public isPPCollistion(obj: TextureRenderable) {
+
+    }
+
     public override getObjectInfo(): IObjectInfoRequest {
         return {
             type: 'texture',
