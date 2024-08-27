@@ -2,8 +2,8 @@ import { AnimatedTextureRenderable, gEngine, IRenderableSet, Renderable } from "
 import { IAtlasElementInfo, IAtlasInfo } from "../../Engine/Core/Types/Atlas";
 import { ResourceManifest } from "../ResourceManifest";
 
-export class Minions implements IRenderableSet {
-    public objects: Renderable[] = []
+export class Minions implements IRenderableSet<AnimatedTextureRenderable> {
+    public objects: AnimatedTextureRenderable[] = []
 
     public async init() {
         const atlasInfo: IAtlasInfo = {
@@ -28,7 +28,6 @@ export class Minions implements IRenderableSet {
                 .loadAnimations(atlasInfo, animations, { width: 50, height: 50 })
                 .setAnimationDirection('left-to-right')
 
-            minion.showBoundingBox = true
             minion.speed = 1
             minion.setFrontDirection([-1, 0])
             minion.setPos({

@@ -200,7 +200,15 @@ export class Renderable {
     }
 
     public getBBCollisionStatus(obj: Renderable) {
-        return this.boundingBox.collisionStatus(obj.boundingBox)
+        const dir = this.boundingBox.collisionStatus(obj.boundingBox)
+        return {
+            'left': !!(dir & BoundingCollisionStatus.LEFT),
+            'right': !!(dir & BoundingCollisionStatus.RIGHT),
+            'top': !!(dir & BoundingCollisionStatus.TOP),
+            'bottom': !!(dir & BoundingCollisionStatus.BOTTOM),
+            'inside': !!(dir & BoundingCollisionStatus.INSIDE),
+            'outside': !!(dir & BoundingCollisionStatus.OUTSIDE)
+        }
     }
 
     public rotateObjToPointTo(obj: Renderable, rate: number) {

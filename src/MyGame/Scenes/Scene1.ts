@@ -31,9 +31,8 @@ export class Scene1 implements IScene {
         this.minions.update()
 
         for (const minon of this.minions.objects) {
-            if (this.hero.isBBCollision(minon)) {
+            if (this.hero.isPPCollision(minon)) {
                 this.isLoading = true
-                console.log(this.hero.getBBCollisionStatus(minon))
             }
         }
     }

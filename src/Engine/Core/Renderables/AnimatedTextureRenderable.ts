@@ -1,22 +1,31 @@
+import { isPPCollision } from "../../Utilities/ImageUtils";
 import { ImageLoader } from "../Resources";
 import { IAtlasElementInfo, IAtlasInfo, ITextureRenderDimensions } from "../Types/Atlas";
 import { IObjectInfoRequest } from "../Types/ObjectInfo";
 import { Renderable } from "./Renderable";
+import { TextureRenderable } from "./TextureRenderable";
 
 export class AnimatedTextureRenderable extends Renderable {
     public animations: Record<string, number[][]> = {}
     public imageBitmap!: ImageBitmap
     public curAnimation!: string
+    public textureInfo!: IAtlasInfo
+    public imageInfoData!: Record<string, IAtlasElementInfo[]>
     private curAnimationIndex = 0
     private curTime!: Date
     private incFrameValue = 1
     private animationSpeedMs = 50
+
+    public get imageInfo() { return this.imageInfoData[this.curAnimation][this.curAnimationIndex] }
 
     public constructor(name: string) {
         super(name)
     }
 
     public loadAnimations(atlas: IAtlasInfo, animations: Record<string, IAtlasElementInfo[]>, dimensions: ITextureRenderDimensions) {
+        this.textureInfo = atlas
+        this.imageInfoData = animations
+
         this.rect(dimensions.width, dimensions.height)
 
         const imageBitmap = ImageLoader.fetchImage(atlas.image)
@@ -87,7 +96,6 @@ export class AnimatedTextureRenderable extends Renderable {
         return this
     }
 
-
     private frame() { return this.animations[this.curAnimation][this.curAnimationIndex] }
 
     public animateAndDraw() {
@@ -101,5 +109,10 @@ export class AnimatedTextureRenderable extends Renderable {
         }
 
         return this.draw()
+    }
+
+    public isPPCollision(obj: TextureRenderable | AnimatedTextureRenderable) {
+        if (!this.isBBCollision(obj)) return false
+        return isPPCollision(this, obj)
     }
 }

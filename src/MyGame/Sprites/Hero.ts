@@ -20,7 +20,7 @@ export class Hero extends TextureRenderable {
             width: 50,
             height: 75,
         }
-        this.showBoundingBox = true
+
         this.setTextureFromAtlas(atlas, elementInfo, dimensions)
         this.setPos({
             x: gEngine.width / 2 - this.width / 2,

@@ -49,6 +49,34 @@ export class Mat4 {
         return temp
     }
 
+    public static vec4Mul(mat: Mat4, vec4: number[]) {
+        if (vec4.length !== 4) {
+            throw new Error("vec4 must be of length 4")
+        }
+        const a = mat.value
+        const result = []
+
+        for (let i = 0; i < 4; i++) {
+            const aVec4 = [
+                a[0 * 4 + i],
+                a[1 * 4 + i],
+                a[2 * 4 + i],
+                a[3 * 4 + i]
+            ]
+
+            result.push(dot(aVec4, vec4))
+        }
+
+        return result
+
+        function dot(aVec4: number[], bVec4: number[]) {
+            return aVec4[0] * bVec4[0] +
+                aVec4[1] * bVec4[1] +
+                aVec4[2] * bVec4[2] +
+                aVec4[3] * bVec4[3]
+        }
+    }
+
     public transpose() {
         const t = this.value
         return new Mat4([
