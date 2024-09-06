@@ -1,5 +1,5 @@
-import { FontLoader, IFont } from "../Resources";
-import { IObjectInfoRequest } from "../Types/ObjectInfo";
+import { FontLoader, IFont } from "../../Resources";
+import { IObjectInfoRequest } from "../../Types/ObjectInfo";
 import { Renderable } from "./Renderable";
 
 export class TextRenderable extends Renderable {
@@ -10,7 +10,6 @@ export class TextRenderable extends Renderable {
     public size!: number
     public letterSpacing = 2
     public lineSpacing = 2
-    private reColor = false
 
     constructor(name: string) {
         super(name)
@@ -93,15 +92,8 @@ export class TextRenderable extends Renderable {
 
         this.width = Math.max(...widths)
         this.height = lines.length * this.size + (lines.length - 1) * this.lineSpacing
-        this.cx = this.x + this.width / 2
-        this.cy = this.y + this.height / 2
 
         return this
-    }
-
-    public override setColor(col?: number[]): this {
-        this.reColor = true
-        return super.setColor(col)
     }
 
     public override getObjectInfo(): IObjectInfoRequest {
@@ -117,7 +109,7 @@ export class TextRenderable extends Renderable {
                 addressModeV: 'clamp-to-edge',
                 magFilter: 'nearest',
             },
-            reColorImage: this.reColor,
+            reColorImage: true,
             draw: this.draw.bind(this),
         }
     }

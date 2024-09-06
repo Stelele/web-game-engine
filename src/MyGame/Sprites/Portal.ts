@@ -1,19 +1,20 @@
-import { gEngine, TextureRenderable } from "../../Engine";
-import { IAtlasElementInfo, IAtlasInfo, ITextureRenderDimensions } from "../../Engine/Core/Types/Atlas";
+import { gEngine, IAtlasElementInfo, IAtlasInfo, ITextureRenderDimensions, TextureRenderable } from "../../Engine";
 import { ResourceManifest } from "../ResourceManifest";
 
-export class Hero extends TextureRenderable {
+export class Portal extends TextureRenderable {
     public constructor() {
-        super("Hero")
+        super("Portal")
+
         const atlas: IAtlasInfo = {
             width: 1024,
             height: 512,
             image: ResourceManifest["scene1"]["atlas"].url
         }
+
         const elementInfo: IAtlasElementInfo = {
-            x: 5,
+            x: 130,
             y: 164 * 2,
-            width: 120,
+            width: 180,
             height: 180,
         }
         const dimensions: ITextureRenderDimensions = {
@@ -25,19 +26,19 @@ export class Hero extends TextureRenderable {
     }
 
     public override update(): void {
-        if (gEngine.Input.keys["w"]) {
+        if (gEngine.Input.keys["ArrowUp"]) {
             this.incPos({ y: -2 })
         }
 
-        if (gEngine.Input.keys["s"]) {
+        if (gEngine.Input.keys["ArrowDown"]) {
             this.incPos({ y: 2 })
         }
 
-        if (gEngine.Input.keys["a"]) {
+        if (gEngine.Input.keys["ArrowLeft"]) {
             this.incPos({ x: -2 })
         }
 
-        if (gEngine.Input.keys["d"]) {
+        if (gEngine.Input.keys["ArrowRight"]) {
             this.incPos({ x: 2 })
         }
     }

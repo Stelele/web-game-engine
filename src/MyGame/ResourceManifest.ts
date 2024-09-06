@@ -9,6 +9,7 @@ export const ResourceManifest: IResourceManifest = {
         "consolas72": { url: "/Fonts/consolas-72", type: "font" }
     },
     "scene1": {
-        "atlas": { url: "/Images/minion_sprite.png", type: "image" }
+        "atlas": { url: "/Images/minion_sprite.png", type: "image" },
+        "bg": { url: "/Images/bg.png", type: "image" }
     }
 }

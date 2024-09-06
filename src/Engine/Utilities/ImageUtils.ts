@@ -1,4 +1,4 @@
-import { AnimatedTextureRenderable, BoundingCollisionStatus, ImageLoader, TextureRenderable } from "../Core";
+import { AnimatedTextureRenderable, ImageLoader, TextureRenderable } from "../Core";
 import { IAtlasElementInfo, IAtlasInfo } from "../Core/Types/Atlas";
 import { Mat4 } from "./Mat4";
 

@@ -1,4 +1,4 @@
 export * from './EngineCore'
-export * from './Scene'
-export * from './Renderables'
+export * from './Types'
+export * from './Rendering/Renderables'
 export * from "./Resources"

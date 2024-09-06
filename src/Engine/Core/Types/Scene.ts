@@ -1,4 +1,4 @@
-import { Renderable } from "./Renderables/Renderable"
+import { Renderable } from "../Rendering/Renderables/Renderable"
 
 export interface IScene {
     init: () => Promise<void>

@@ -38,4 +38,10 @@ export class Vec2 {
         const yr = x0 * Math.sin(r) + y0 * Math.cos(r)
         return [xr, yr]
     }
+
+    public static lerp([x0, y0]: number[], [x1, y1]: number[], rate: number) {
+        const x = x0 + rate * (x1 - x0)
+        const y = y0 * ((x1 - x) / (x1 - x0)) + y1 * ((x - x0) / (x1 - x0))
+        return [x, y]
+    }
 }

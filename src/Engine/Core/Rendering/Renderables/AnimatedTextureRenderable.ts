@@ -1,7 +1,7 @@
-import { isPPCollision } from "../../Utilities/ImageUtils";
-import { ImageLoader } from "../Resources";
-import { IAtlasElementInfo, IAtlasInfo, ITextureRenderDimensions } from "../Types/Atlas";
-import { IObjectInfoRequest } from "../Types/ObjectInfo";
+import { isPPCollision } from "../../../Utilities/ImageUtils";
+import { ImageLoader } from "../../Resources";
+import { IAtlasElementInfo, IAtlasInfo, ITextureRenderDimensions } from "../../Types/Atlas";
+import { IObjectInfoRequest } from "../../Types/ObjectInfo";
 import { Renderable } from "./Renderable";
 import { TextureRenderable } from "./TextureRenderable";
 

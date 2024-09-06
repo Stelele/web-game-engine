@@ -1,6 +1,7 @@
-import { Mat4 } from "../../Utilities/Mat4";
-import { Vec2 } from "../../Utilities/Vec2";
-import { IObjectInfoRequest } from "../Types/ObjectInfo";
+import { Mat4 } from "../../../Utilities/Mat4";
+import { Vec2 } from "../../../Utilities/Vec2";
+import { IObjectInfoRequest } from "../../Types/ObjectInfo";
+import { BoundingBox } from "../BoundingBox";
 
 export class Renderable {
     public name: string
@@ -10,8 +11,6 @@ export class Renderable {
     public rotation!: number
     public x!: number
     public y!: number
-    protected cx!: number
-    protected cy!: number
     public width!: number
     public height!: number
     public visible = true
@@ -32,17 +31,14 @@ export class Renderable {
     public get scaledWidth() { return this.width * this.scale }
     public get scaledHeight() { return this.height * this.scale }
     public get curFrontDirection() { return this.frontDirection }
+    public get cx() { return this.x + this.scaledWidth / 2 }
+    public get cy() { return this.y + this.scaledHeight / 2 }
     public get boundingBox() {
         return new BoundingBox(
             [this.cx, this.cy],
             this.scaledWidth,
             this.scaledHeight
         )
-    }
-
-    protected setCenterPos([x, y]: number[]) {
-        this.cx = x
-        this.cy = y
     }
 
     public rect(width: number, height: number) {
@@ -56,8 +52,6 @@ export class Renderable {
             width, height,
             width, 0
         ])
-
-        this.setCenterPos([this.width / 2, this.height / 2])
 
         return this
     }
@@ -151,16 +145,12 @@ export class Renderable {
     public setPos(pos: { x?: number, y?: number } = {}) {
         this.x = pos.x ?? 0
         this.y = pos.y ?? 0
-        this.cx = this.x + this.width / 2
-        this.cy = this.y + this.height / 2
         return this
     }
 
     public incPos(pos: { x?: number, y?: number }) {
         this.x += pos.x ?? 0
         this.y += pos.y ?? 0
-        this.cx = this.x + this.width / 2
-        this.cy = this.y + this.height / 2
         return this
     }
 
@@ -200,15 +190,7 @@ export class Renderable {
     }
 
     public getBBCollisionStatus(obj: Renderable) {
-        const dir = this.boundingBox.collisionStatus(obj.boundingBox)
-        return {
-            'left': !!(dir & BoundingCollisionStatus.LEFT),
-            'right': !!(dir & BoundingCollisionStatus.RIGHT),
-            'top': !!(dir & BoundingCollisionStatus.TOP),
-            'bottom': !!(dir & BoundingCollisionStatus.BOTTOM),
-            'inside': !!(dir & BoundingCollisionStatus.INSIDE),
-            'outside': !!(dir & BoundingCollisionStatus.OUTSIDE)
-        }
+        return this.boundingBox.collisionStatus(obj.boundingBox)
     }
 
     public rotateObjToPointTo(obj: Renderable, rate: number) {
@@ -234,61 +216,3 @@ export class Renderable {
     }
 }
 
-export class BoundingBox {
-    public minX: number
-    public minY: number
-    public maxX: number
-    public maxY: number
-
-    public constructor([cx, cy]: number[], width: number, height: number) {
-        this.minX = cx - width / 2
-        this.minY = cy - height / 2
-        this.maxX = cx + width / 2
-        this.maxY = cy + height / 2
-    }
-
-    public containsPoint([x, y]: number[]) {
-        return this.minX < x && this.maxX > x &&
-            this.minY < y && this.maxY > y
-    }
-
-    public intesects(bound: BoundingBox) {
-        return this.minX < bound.maxX &&
-            this.maxX > bound.minX &&
-            this.minY < bound.maxY &&
-            this.maxY > bound.minY
-    }
-
-    public collisionStatus(bound: BoundingBox) {
-        let status: number = BoundingCollisionStatus.OUTSIDE
-
-        if (!this.intesects(bound)) return status
-
-        if (bound.minX < this.minX) {
-            status |= BoundingCollisionStatus.LEFT
-        }
-        if (bound.maxX > this.maxX) {
-            status |= BoundingCollisionStatus.RIGHT
-        }
-        if (bound.minY < this.minY) {
-            status |= BoundingCollisionStatus.TOP
-        }
-        if (bound.maxY > this.maxY) {
-            status |= BoundingCollisionStatus.BOTTOM
-        }
-        if (status === BoundingCollisionStatus.OUTSIDE) {
-            status = BoundingCollisionStatus.INSIDE
-        }
-
-        return status
-    }
-}
-
-export enum BoundingCollisionStatus {
-    LEFT = 1,
-    RIGHT = 2,
-    TOP = 4,
-    BOTTOM = 8,
-    INSIDE = 16,
-    OUTSIDE = 0,
-}

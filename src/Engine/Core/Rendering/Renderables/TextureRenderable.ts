@@ -1,8 +1,8 @@
-import { ImageLoader } from "../Resources";
-import { IObjectInfoRequest } from "../Types/ObjectInfo";
+import { ImageLoader } from "../../Resources";
+import { IObjectInfoRequest } from "../../Types/ObjectInfo";
 import { Renderable } from "./Renderable";
-import { IAtlasElementInfo, IAtlasInfo, ITextureRenderDimensions } from "../Types/Atlas"
-import { isPPCollision } from "../../Utilities/ImageUtils";
+import { IAtlasElementInfo, IAtlasInfo, ITextureRenderDimensions } from "../../Types/Atlas"
+import { isPPCollision } from "../../../Utilities/ImageUtils";
 import { AnimatedTextureRenderable } from "./AnimatedTextureRenderable";
 
 export class TextureRenderable extends Renderable {

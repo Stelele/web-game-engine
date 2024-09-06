@@ -3,7 +3,7 @@ import { SimpleVS } from "../Shaders/SimpleVS"
 import { TextureFS } from "../Shaders/TextureFS"
 import { TexturevS as TextureVS } from "../Shaders/TextureVS"
 import { InputHandler } from "./InputHandler"
-import { Renderer } from "./Renderer"
+import { Renderer } from "./Rendering/Renderer"
 import { ResourceManager } from "./Resources/ResourceManager"
 
 export class gEngine {

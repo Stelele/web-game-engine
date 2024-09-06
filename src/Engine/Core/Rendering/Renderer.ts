@@ -1,8 +1,8 @@
-import { Mat4 } from "../Utilities/Mat4";
 import { Renderable } from "./Renderables/Renderable";
-import { IScene } from "./Scene";
-import { IObjectInfo, IObjectInfoRequest, IRenderableType, ISamplerType } from './Types/ObjectInfo'
-import { IViewPortInfo, IViewPortInfoRequest } from './Types/ViewPort'
+import { IScene } from "../Types/Scene";
+import { IObjectInfo, IObjectInfoRequest, IRenderableType, ISamplerType } from '../Types/ObjectInfo'
+import { IViewPortInfo, IViewPortInfoRequest } from '../Types/ViewPort'
+import { Camera } from "./Camera";
 
 export class Renderer {
     private device!: GPUDevice
@@ -17,11 +17,11 @@ export class Renderer {
     private objectInfos!: Array<IObjectInfo>
     private worldDimensions!: Float32Array
     private worldDimensionsUniform!: GPUBuffer
-    private vpMat!: Float32Array
     private vpMatUniform!: GPUBuffer
     private resolutionUniform!: GPUBuffer
     private viewPort?: IViewPortInfoRequest
     private curScene!: IScene
+    private camera!: Camera
 
     constructor(private canvas: HTMLCanvasElement) { }
 
@@ -458,38 +458,29 @@ export class Renderer {
         })
         this.device.queue.writeBuffer(this.resolutionUniform, 0, resolution)
 
-        this.setViewProjection(
-            [width / 2, height / 2],
-            width / 2,
-            width / 2,
-            height / 2,
-            height / 2
-        )
+        this.setCamera(new Camera("Default Camera", {
+            cx: width / 2,
+            cy: height / 2,
+            distToLeft: width / 2,
+            distToRight: width / 2,
+            distToTop: height / 2,
+            distToBottom: height / 2,
+        }))
     }
 
-    private setViewProjection([cx, cy]: number[], distToLeft: number, distToRight: number, distToBottom: number, distToTop: number) {
-        const viewMat = Mat4.lookAt(
-            [cx, cy, 10],
-            [cx, cy, 0],
-            [0, 1, 0]
-        )
+    public setCamera(camera: Camera) {
+        this.camera = camera
+        this.setViewProjection()
+    }
 
-        const projMat = Mat4.ortho(
-            -distToLeft,
-            distToRight,
-            -distToBottom,
-            distToTop,
-            0,
-            1000
-        )
-
-        this.vpMat = new Float32Array(Mat4.matMul(viewMat, projMat).Value)
+    private setViewProjection() {
+        const viewProjMat = new Float32Array(this.camera.ViewProjMat)
         this.vpMatUniform = this.device.createBuffer({
-            label: "View-Projection Matrix",
-            size: this.vpMat.byteLength,
+            label: `View-Projection Matrix: ${this.camera.Name}`,
+            size: viewProjMat.byteLength,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         })
-        this.device.queue.writeBuffer(this.vpMatUniform, 0, this.vpMat)
+        this.device.queue.writeBuffer(this.vpMatUniform, 0, viewProjMat)
     }
 
     private startAnimation(targetFps: number, renderer: Renderer) {
@@ -575,6 +566,7 @@ export class Renderer {
         pass.setScissorRect(v.x, v.y, v.width, v.height)
 
         this.device.queue.writeBuffer(this.resolutionUniform, 0, new Float32Array([this.canvas.width, this.canvas.height]))
+        this.device.queue.writeBuffer(this.vpMatUniform, 0, new Float32Array(this.camera.ViewProjMat))
 
         for (const objectInfo of this.objectInfos) {
             pass.setPipeline(this.pipelines[objectInfo.type])
