@@ -19,7 +19,7 @@ export class Interpolate {
         this.currentValue = this.currentValue + this.rate * (this.finalValue - this.currentValue)
     }
 
-    public get Value() { return this.currentValue }
+    public get value() { return this.currentValue }
 
     public configInterpolation(stiffness: number, duration: number) {
         this.rate = stiffness
@@ -61,7 +61,7 @@ export class InterpolateV2 {
         this.currentValue = Vec2.lerp(this.currentValue, this.finalValue, this.rate)
     }
 
-    public get Value() { return this.currentValue }
+    public get value() { return this.currentValue }
 
     public configInterpolation(stiffness: number, duration: number) {
         this.rate = stiffness

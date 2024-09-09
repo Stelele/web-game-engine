@@ -461,10 +461,8 @@ export class Renderer {
         this.setCamera(new Camera("Default Camera", {
             cx: width / 2,
             cy: height / 2,
-            distToLeft: width / 2,
-            distToRight: width / 2,
-            distToTop: height / 2,
-            distToBottom: height / 2,
+            width,
+            height
         }))
     }
 

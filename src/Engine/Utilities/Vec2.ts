@@ -40,8 +40,21 @@ export class Vec2 {
     }
 
     public static lerp([x0, y0]: number[], [x1, y1]: number[], rate: number) {
-        const x = x0 + rate * (x1 - x0)
-        const y = y0 * ((x1 - x) / (x1 - x0)) + y1 * ((x - x0) / (x1 - x0))
+        const diffX = x1 - x0
+        const diffY = y1 - y0
+
+        let x = x0
+        let y = y0
+        if (diffX === 0 && diffY === 0) return [x0, y0]
+
+        if (diffX !== 0) {
+            x = (1 - rate) * x0 + rate * x1
+            y = y0 * ((x1 - x) / diffX) + y1 * ((x - x0) / diffX)
+        } else {
+            y = (1 - rate) * y0 + rate * y1
+            x = x0 * ((y1 - y) / diffY) + x1 * ((y - y0) / diffY)
+        }
+
         return [x, y]
     }
 }

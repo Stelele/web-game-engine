@@ -65,6 +65,7 @@ export class Scene1 implements IScene {
 
         this.focusObject = this.hero
         this.unFocusObject = this.portal
+        this.camera.panWith(this.focusObject, 0.9)
         this.choice = "H"
 
         this.isLoading = false
@@ -87,10 +88,12 @@ export class Scene1 implements IScene {
         if (gEngine.Input.keys['p']) {
             this.focusObject = this.portal
             this.unFocusObject = this.hero
+            this.camera.panTo([this.focusObject.cx, this.focusObject.cy])
         }
         if (gEngine.Input.keys['h']) {
             this.focusObject = this.hero
             this.unFocusObject = this.portal
+            this.camera.panTo([this.focusObject.cx, this.focusObject.cy])
         }
         if (gEngine.Input.keys['n']) {
             this.camera.zoomBy(0.95)
@@ -107,6 +110,7 @@ export class Scene1 implements IScene {
 
         this.hero.update()
         this.portal.update()
+        this.camera.update()
     }
 
     public getRenderables() {

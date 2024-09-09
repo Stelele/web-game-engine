@@ -1,3 +1,4 @@
+import { Interpolate, InterpolateV2 } from "../../Utilities/Interpolate"
 import { Mat4 } from "../../Utilities/Mat4"
 import { Vec2 } from "../../Utilities/Vec2"
 import { gEngine } from "../EngineCore"
@@ -6,56 +7,56 @@ import { Renderable } from "./Renderables"
 
 export class Camera {
     private name: string
-    public cx: number
-    public cy: number
-    public distToLeft: number
-    public distToRight: number
-    public distToTop: number
-    public distToBottom: number
+    private state: CameraState
 
     public constructor(
         name: string,
         options?: {
             cx?: number,
             cy?: number,
-            distToLeft?: number,
-            distToRight?: number,
-            distToTop?: number,
-            distToBottom?: number,
+            width?: number,
+            height?: number
         }
     ) {
         this.name = name
-        this.cx = options?.cx ?? gEngine.width / 2
-        this.cy = options?.cy ?? gEngine.height / 2
-        this.distToLeft = options?.distToLeft ?? gEngine.width / 2
-        this.distToRight = options?.distToRight ?? gEngine.width / 2
-        this.distToTop = options?.distToTop ?? gEngine.height / 2
-        this.distToBottom = options?.distToBottom ?? gEngine.height / 2
+        const cx = options?.cx ?? gEngine.width / 2
+        const cy = options?.cy ?? gEngine.height / 2
+        const width = options?.width ?? gEngine.width
+        const height = options?.height ?? gEngine.height
+
+        this.state = new CameraState([cx, cy], width, height)
     }
 
     public get Name() { return this.name }
-    public get WcHeight() { return this.distToBottom + this.distToTop }
-    public get WcWidth() { return this.distToLeft + this.distToRight }
     public get ViewProjMat() {
         const viewMat = Mat4.lookAt(
-            [this.cx, this.cy, 10],
-            [this.cx, this.cy, 0],
+            [...this.state.center, 10],
+            [...this.state.center, 0],
             [0, 1, 0]
         )
 
         const projMat = Mat4.ortho(
-            -this.distToLeft,
-            this.distToRight,
-            -this.distToBottom,
-            this.distToTop,
+            -(this.state.width / 2),
+            this.state.width / 2,
+            -(this.state.height / 2),
+            this.state.height / 2,
             0,
             1000
         )
 
         return Mat4.matMul(viewMat, projMat).Value
     }
+
+    public update() {
+        this.state.updateCameraState()
+    }
+
+    public configIntepolation(stiffness: number, duration: number) {
+        this.state.configInterpolation(stiffness, duration)
+    }
+
     public boundingBox(zone = 1) {
-        return new BoundingBox([this.cx, this.cy], zone * this.WcWidth, zone * this.WcHeight)
+        return new BoundingBox(this.state.center, zone * this.state.width, zone * this.state.height)
     }
 
     public clampAtBoundary(obj: Renderable, zone: number) {
@@ -63,66 +64,109 @@ export class Camera {
         if (status === BoundingCollisionStatus.INSIDE) return { status, statusObj }
 
         if (statusObj['top']) {
-            obj.y = this.cy - (zone * this.distToTop)
+            obj.y = this.state.center[1] - (zone * this.state.height / 2)
         }
         if (statusObj['bottom']) {
-            obj.y = this.cy + (zone * this.distToBottom) - obj.scaledHeight
+            obj.y = this.state.center[1] + (zone * this.state.height / 2) - obj.scaledHeight
         }
         if (statusObj['right']) {
-            obj.x = this.cx + (zone * this.distToRight) - obj.scaledWidth
+            obj.x = this.state.center[0] + (zone * this.state.width / 2) - obj.scaledWidth
         }
         if (statusObj['left']) {
-            obj.x = this.cx - (zone * this.distToLeft)
+            obj.x = this.state.center[0] - (zone * this.state.width / 2)
         }
 
         return { status, statusObj }
     }
 
     public panBy([dx, dy]: number[]) {
-        this.cx += dx ?? 0
-        this.cy += dy ?? 0
+        const cx = this.state.center[0] + dx
+        const cy = this.state.center[1] + dy
+        this.state.setCenter([cx, cy])
     }
 
     public panTo([cx, cy]: number[]) {
-        this.cx = cx ?? this.cx
-        this.cy = cy ?? this.cy
+        this.state.setCenter([cx, cy])
     }
 
     public panWith(obj: Renderable, zone: number) {
         const { status, statusObj } = this.boundingBox(zone).collisionStatus(obj.boundingBox)
         if (status === BoundingCollisionStatus.INSIDE) return { status, statusObj }
 
+        let cx = this.state.center[0]
+        let cy = this.state.center[1]
+
         if (statusObj['top']) {
-            this.cy = obj.y - (zone * this.distToTop)
+            cy = obj.cy - (zone * this.state.height / 2) + obj.scaledHeight
         }
         if (statusObj['bottom']) {
-            this.cy = obj.y + (zone * this.distToBottom) - obj.scaledHeight
+            cy = obj.cy + (zone * this.state.height / 2) - obj.scaledHeight
         }
         if (statusObj['left']) {
-            this.cx = obj.x - (zone * this.distToLeft)
+            cx = obj.cx - (zone * this.state.width / 2) + obj.scaledWidth
         }
         if (statusObj['right']) {
-            this.cx = obj.x + (zone * this.distToRight) - obj.scaledHeight
+            cx = obj.cx + (zone * this.state.width / 2) - obj.scaledWidth
         }
+
+        this.state.setCenter([cx, cy])
     }
 
     public zoomBy(zoom: number) {
         if (zoom > 0) {
-            this.distToLeft *= zoom
-            this.distToRight *= zoom
-            this.distToBottom *= zoom
-            this.distToTop *= zoom
+            this.state.setDimensions(
+                Math.max(1, this.state.width * zoom),
+                Math.max(1, this.state.height * zoom),
+            )
         }
     }
 
     public zoomTowards([x, y]: number[], zoom: number) {
-        let delta = Vec2.subtract([x, y], [this.cx, this.cy])
+        let delta = Vec2.subtract([x, y], this.state.center)
         delta = Vec2.scale(delta, zoom - 1)
-        const newC = Vec2.subtract([this.cx, this.cy], delta)
+        const newC = Vec2.subtract(this.state.center, delta)
 
-        this.cx = newC[0]
-        this.cy = newC[1]
+        this.state.setCenter(newC)
 
         this.zoomBy(zoom)
+    }
+}
+
+class CameraState {
+    private readonly cycles = 300
+    private readonly rate = 0.1
+    private _center: InterpolateV2
+    private _width: Interpolate
+    private _height: Interpolate
+
+    public constructor(center: number[], width: number, height: number) {
+        this._center = new InterpolateV2(center, this.cycles, this.rate)
+        this._width = new Interpolate(width, this.cycles, this.rate)
+        this._height = new Interpolate(height, this.cycles, this.rate)
+    }
+
+    public get center() { return this._center.value }
+    public get width() { return this._width.value }
+    public get height() { return this._height.value }
+
+    public setCenter(value: number[]) {
+        this._center.setFinalValue(value)
+    }
+
+    public setDimensions(width: number, height: number) {
+        this._width.setFinalValue(width)
+        this._height.setFinalValue(height)
+    }
+
+    public updateCameraState() {
+        this._center.updateInterpolation()
+        this._width.updateInterpolation()
+        this._height.updateInterpolation()
+    }
+
+    public configInterpolation(stiffness: number, duration: number) {
+        this._center.configInterpolation(stiffness, duration)
+        this._width.configInterpolation(stiffness, duration)
+        this._height.configInterpolation(stiffness, duration)
     }
 }
