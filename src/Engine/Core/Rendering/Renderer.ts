@@ -2,7 +2,7 @@ import { Renderable } from "./Renderables/Renderable";
 import { IScene } from "../Types/Scene";
 import { IObjectInfo, IObjectInfoRequest, IRenderableType, ISamplerType } from '../Types/ObjectInfo'
 import { IViewPortInfo, IViewPortInfoRequest } from '../Types/ViewPort'
-import { Camera } from "./Camera";
+import { Camera } from "./Camera/Camera";
 
 export class Renderer {
     private device!: GPUDevice
@@ -472,9 +472,9 @@ export class Renderer {
     }
 
     private setViewProjection() {
-        const viewProjMat = new Float32Array(this.camera.ViewProjMat)
+        const viewProjMat = new Float32Array(this.camera.viewProjMat)
         this.vpMatUniform = this.device.createBuffer({
-            label: `View-Projection Matrix: ${this.camera.Name}`,
+            label: `View-Projection Matrix: ${this.camera.name}`,
             size: viewProjMat.byteLength,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
         })
@@ -564,7 +564,7 @@ export class Renderer {
         pass.setScissorRect(v.x, v.y, v.width, v.height)
 
         this.device.queue.writeBuffer(this.resolutionUniform, 0, new Float32Array([this.canvas.width, this.canvas.height]))
-        this.device.queue.writeBuffer(this.vpMatUniform, 0, new Float32Array(this.camera.ViewProjMat))
+        this.device.queue.writeBuffer(this.vpMatUniform, 0, new Float32Array(this.camera.viewProjMat))
 
         for (const objectInfo of this.objectInfos) {
             pass.setPipeline(this.pipelines[objectInfo.type])

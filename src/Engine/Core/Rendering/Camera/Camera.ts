@@ -1,13 +1,16 @@
-import { Interpolate, InterpolateV2 } from "../../Utilities/Interpolate"
-import { Mat4 } from "../../Utilities/Mat4"
-import { Vec2 } from "../../Utilities/Vec2"
-import { gEngine } from "../EngineCore"
-import { BoundingBox, BoundingCollisionStatus } from "./BoundingBox"
-import { Renderable } from "./Renderables"
+import { Mat4 } from "../../../Utilities/Mat4"
+import { Vec2 } from "../../../Utilities/Vec2"
+import { gEngine } from "../../EngineCore"
+import { BoundingBox, BoundingCollisionStatus } from "../BoundingBox"
+import { Renderable } from "../Renderables"
+import { CameraShake } from "./CameraShake"
+import { CameraState } from "./CameraState"
 
 export class Camera {
-    private name: string
+    private _name: string
     private state: CameraState
+    private shaker?: CameraShake
+    private centerBeforeShake: number[] = []
 
     public constructor(
         name: string,
@@ -18,7 +21,7 @@ export class Camera {
             height?: number
         }
     ) {
-        this.name = name
+        this._name = name
         const cx = options?.cx ?? gEngine.width / 2
         const cy = options?.cy ?? gEngine.height / 2
         const width = options?.width ?? gEngine.width
@@ -27,8 +30,9 @@ export class Camera {
         this.state = new CameraState([cx, cy], width, height)
     }
 
-    public get Name() { return this.name }
-    public get ViewProjMat() {
+    public get center() { return this.state.center }
+    public get name() { return this._name }
+    public get viewProjMat() {
         const viewMat = Mat4.lookAt(
             [...this.state.center, 10],
             [...this.state.center, 0],
@@ -48,7 +52,21 @@ export class Camera {
     }
 
     public update() {
-        this.state.updateCameraState()
+        if (this.shaker && !this.shaker.shakeDone) {
+            this.shaker.updateShakeState()
+        } else {
+            this.state.updateCameraState()
+        }
+
+        if (this.shaker && this.shaker.shakeDone) {
+            this.shaker = undefined
+            this.state.setCenter(this.centerBeforeShake)
+        }
+    }
+
+    public shake(xDelta: number, yDelta: number, shakeFrequency: number, shakeDuration: number) {
+        this.centerBeforeShake = this.state.center
+        this.shaker = new CameraShake(this, xDelta, yDelta, shakeFrequency, shakeDuration)
     }
 
     public configIntepolation(stiffness: number, duration: number) {
@@ -130,43 +148,13 @@ export class Camera {
 
         this.zoomBy(zoom)
     }
-}
 
-class CameraState {
-    private readonly cycles = 300
-    private readonly rate = 0.1
-    private _center: InterpolateV2
-    private _width: Interpolate
-    private _height: Interpolate
-
-    public constructor(center: number[], width: number, height: number) {
-        this._center = new InterpolateV2(center, this.cycles, this.rate)
-        this._width = new Interpolate(width, this.cycles, this.rate)
-        this._height = new Interpolate(height, this.cycles, this.rate)
+    public setCenter([cx, cy]: number[]) {
+        this.state.setCenter([cx, cy])
     }
 
-    public get center() { return this._center.value }
-    public get width() { return this._width.value }
-    public get height() { return this._height.value }
-
-    public setCenter(value: number[]) {
-        this._center.setFinalValue(value)
-    }
-
-    public setDimensions(width: number, height: number) {
-        this._width.setFinalValue(width)
-        this._height.setFinalValue(height)
-    }
-
-    public updateCameraState() {
-        this._center.updateInterpolation()
-        this._width.updateInterpolation()
-        this._height.updateInterpolation()
-    }
-
-    public configInterpolation(stiffness: number, duration: number) {
-        this._center.configInterpolation(stiffness, duration)
-        this._width.configInterpolation(stiffness, duration)
-        this._height.configInterpolation(stiffness, duration)
+    public setCenterDirectly(value: number[]) {
+        this.state.setCenterDirectly(value)
     }
 }
+

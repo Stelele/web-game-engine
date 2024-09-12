@@ -40,6 +40,11 @@ export class Interpolate {
             this.interpolateValue()
         }
     }
+
+    public setValueDirectly(value: number) {
+        this.currentValue = value
+        this.cyclesLeft = 0
+    }
 }
 
 export class InterpolateV2 {
@@ -81,5 +86,10 @@ export class InterpolateV2 {
         } else {
             this.interpolateValue()
         }
+    }
+
+    public setValueDirectly(value: number[]) {
+        this.currentValue = value
+        this.cyclesLeft = 0
     }
 }

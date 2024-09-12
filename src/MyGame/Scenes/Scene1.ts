@@ -1,5 +1,5 @@
 import { gEngine, IScene, Renderable, TextRenderable, TextureRenderable } from "../../Engine";
-import { Camera } from "../../Engine/Core/Rendering/Camera";
+import { Camera } from "../../Engine/Core/Rendering/Camera/Camera";
 import { ResourceManifest } from "../ResourceManifest";
 import { Hero } from "../Sprites/Hero";
 import { Minion } from "../Sprites/Minion";
@@ -106,6 +106,9 @@ export class Scene1 implements IScene {
         }
         if (gEngine.Input.keys['k']) {
             this.camera.zoomTowards([this.focusObject.cx, this.focusObject.cy], 1.05)
+        }
+        if (gEngine.Input.keys['q']) {
+            this.camera.shake(10, 6, 10, 300)
         }
 
         this.hero.update()
