@@ -1,7 +1,7 @@
-import { Renderable } from "../Rendering/Renderables/Renderable"
+import { IRenderingPassInfoRequest } from "./RenderingPassInfo"
 
 export interface IScene {
     init: () => Promise<void>
     update: () => void
-    getRenderables: () => Renderable[]
+    getRenderingPassesInfo: () => IRenderingPassInfoRequest[]
 }

@@ -1,4 +1,4 @@
-import { gEngine, IScene, Renderable, TextRenderable, TextureRenderable } from "../../Engine";
+import { gEngine, IRenderingPassInfoRequest, IScene, Renderable, TextRenderable, TextureRenderable } from "../../Engine";
 import { Camera } from "../../Engine/Core/Rendering/Camera/Camera";
 import { ResourceManifest } from "../ResourceManifest";
 import { Hero } from "../Sprites/Hero";
@@ -17,18 +17,20 @@ export class Scene1 implements IScene {
     private camera: Camera
     private focusObject!: Renderable
     private unFocusObject!: Renderable
-    private choice = ''
 
     public constructor() {
         this.isLoading = true
         this.camera = new Camera("Scene 1")
-        gEngine.GL.setCamera(this.camera)
         this.init()
     }
 
     public async init() {
         this.background = new TextureRenderable("Background")
             .setTexture(1024, 1024, ResourceManifest['scene1']['bg'].url)
+        this.background.setPos({
+            x: (gEngine.width / 2) - (this.background.width / 2),
+            y: (gEngine.height / 2) - (this.background.height / 2)
+        })
 
         this.hero = new Hero()
         this.hero.setPos({
@@ -66,7 +68,6 @@ export class Scene1 implements IScene {
         this.focusObject = this.hero
         this.unFocusObject = this.portal
         this.camera.panWith(this.focusObject, 0.9)
-        this.choice = "H"
 
         this.isLoading = false
     }
@@ -117,8 +118,6 @@ export class Scene1 implements IScene {
     }
 
     public getRenderables() {
-        if (this.isLoading) return []
-
         return [
             this.background,
             this.hero,
@@ -129,4 +128,14 @@ export class Scene1 implements IScene {
         ]
     }
 
+    public getRenderingPassesInfo(): IRenderingPassInfoRequest[] {
+        if (this.isLoading) return []
+        return [
+            {
+                camera: this.camera,
+                renderables: this.getRenderables(),
+                viewPort: { x: 0.1, y: 0.1, width: 0.8 }
+            }
+        ]
+    }
 }
