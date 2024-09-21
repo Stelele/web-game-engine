@@ -15,6 +15,8 @@ export class Scene1 implements IScene {
     private text!: TextRenderable
 
     private camera: Camera
+    private camera2!: Camera
+    private camera3!: Camera
     private focusObject!: Renderable
     private unFocusObject!: Renderable
 
@@ -69,6 +71,19 @@ export class Scene1 implements IScene {
         this.unFocusObject = this.portal
         this.camera.panWith(this.focusObject, 0.9)
 
+        this.camera2 = new Camera("Camera 2", {
+            cx: this.portal.cx,
+            cy: this.portal.cy,
+            width: 2 * this.portal.width,
+            height: 2 * this.portal.height
+        })
+        this.camera3 = new Camera("Camera 3", {
+            cx: this.minionLeft.cx,
+            cy: this.minionLeft.cy,
+            width: 2 * this.minionLeft.width,
+            height: 2 * this.minionLeft.height,
+        })
+
         this.isLoading = false
     }
 
@@ -115,6 +130,10 @@ export class Scene1 implements IScene {
         this.hero.update()
         this.portal.update()
         this.camera.update()
+        this.camera2.setCenterDirectly([this.portal.cx, this.portal.cy])
+        this.camera2.update()
+        this.camera3.setCenterDirectly([this.minionLeft.cx, this.minionLeft.cy])
+        this.camera3.update()
     }
 
     public getRenderables() {
@@ -134,8 +153,18 @@ export class Scene1 implements IScene {
             {
                 camera: this.camera,
                 renderables: this.getRenderables(),
-                viewPort: { x: 0.1, y: 0.1, width: 0.8 }
-            }
+                viewPort: { x: 0.1, y: 0.2, width: 0.8 }
+            },
+            {
+                camera: this.camera2,
+                renderables: [this.background, this.portal],
+                viewPort: { x: 0.1, y: 0, width: 0.2 }
+            },
+            {
+                camera: this.camera3,
+                renderables: [this.background, this.minionLeft],
+                viewPort: { x: 0.7, y: 0, width: 0.2 }
+            },
         ]
     }
 }

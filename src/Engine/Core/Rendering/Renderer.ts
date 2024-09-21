@@ -256,7 +256,7 @@ export class Renderer {
             label: "Render Pass Description",
             colorAttachments: [{
                 clearValue: [0.0, 0.8, 0.0, 1.0],
-                loadOp: "clear",
+                loadOp: "load",
                 storeOp: "store",
                 view: this.context.getCurrentTexture().createView()
             }]

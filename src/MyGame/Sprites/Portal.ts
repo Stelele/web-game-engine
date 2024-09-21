@@ -18,7 +18,7 @@ export class Portal extends TextureRenderable {
             height: 180,
         }
         const dimensions: ITextureRenderDimensions = {
-            width: 50,
+            width: 75,
             height: 75,
         }
 
