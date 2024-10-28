@@ -21,18 +21,20 @@ export class gEngine {
 
     private static _width: number = 640
     private static _height: number = 360
+    private static _canvas: HTMLCanvasElement
 
     public static get width() { return gEngine._width }
     public static get height() { return gEngine._height }
+    public static get canvas() { return this._canvas }
 
     public static async initializeWebGPU(htmlCanvasId: string) {
         document.body.style.backgroundColor = "black"
-        const canvas = document.getElementById(htmlCanvasId) as HTMLCanvasElement
+        this._canvas = document.getElementById(htmlCanvasId) as HTMLCanvasElement
 
         this.Input.initialize()
 
         if (!this._Renderer) {
-            this._Renderer = new Renderer(canvas)
+            this._Renderer = new Renderer(this.canvas)
         }
 
         await this._Renderer.init(this.width, this.height)

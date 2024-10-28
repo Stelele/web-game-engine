@@ -1,9 +1,9 @@
-import { Renderable } from "./Renderables/Renderable";
 import { IScene } from "../Types/Scene";
-import { IObjectInfo, IObjectInfoRequest, IRenderableType, ISamplerType } from '../Types/ObjectInfo'
+import { IObjectInfo, IRenderableType } from '../Types/ObjectInfo'
 import { IViewPortInfo, IViewPortInfoRequest } from '../Types/ViewPort'
 import { Camera } from "./Camera/Camera";
 import { IRenderingPassInfo } from "../Types/RenderingPassInfo";
+import { getRenderTemplate } from "./Templates/RenderTemplate";
 
 export class Renderer {
     private device!: GPUDevice
@@ -152,34 +152,8 @@ export class Renderer {
             })
         }
 
-        if (type === 'primitive') {
-            this.bindGroupLayouts[type] = this.device.createBindGroupLayout({
-                label: `Bind Group Layout: ${type}`,
-                entries: baseEntries
-            })
-        } else if (type === 'texture' || type === 'animated-texture') {
-            this.bindGroupLayouts[type] = this.device.createBindGroupLayout({
-                label: `Bind Group Layout: ${type}`,
-                entries: [
-                    ...baseEntries,
-                    {
-                        binding: 10,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        sampler: {}
-                    },
-                    {
-                        binding: 11,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        texture: {}
-                    },
-                    {
-                        binding: 12,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        buffer: { type: 'uniform' }
-                    }
-                ]
-            })
-        }
+        const renderTemplate = getRenderTemplate(type)
+        renderTemplate.configureBindGroupLayout(this.bindGroupLayouts, this.device, baseEntries)
 
         this.pipelineLayouts[type] = this.device.createPipelineLayout({
             label: `Pipeline Layout: ${type}`,
@@ -199,14 +173,8 @@ export class Renderer {
             }
         ]
 
-        if (type === 'texture' || type === 'animated-texture') {
-            buffers.push({
-                arrayStride: 2 * 4,
-                attributes: [
-                    { shaderLocation: 1, offset: 0, format: "float32x2" }
-                ]
-            })
-        }
+        const renderTemplate = getRenderTemplate(type)
+        renderTemplate.configurePipelineBuffers(buffers)
 
         this.pipelines[type] = this.device.createRenderPipeline({
             label: `Render Pipeline: ${type}`,
@@ -231,24 +199,14 @@ export class Renderer {
             { binding: 4, resource: { buffer: vpMatUniform } },
         ]
 
-        if (objectInfo.type === 'texture' || objectInfo.type === 'animated-texture') {
-            const sampler = this.samplers[this.getSamplerIndex(objectInfo.samplerType)]
-            entries.push({ binding: 10, resource: sampler })
-            entries.push({ binding: 11, resource: objectInfo.texture.createView() })
-            entries.push({ binding: 12, resource: { buffer: objectInfo.flags } })
-        }
+        const renderTemplate = getRenderTemplate(objectInfo.type)
+        renderTemplate.getBindGroup(entries, this.samplers, objectInfo)
 
         return this.device.createBindGroup({
             label: "Bind Group",
             layout: this.bindGroupLayouts[objectInfo.type],
             entries
         })
-    }
-
-    private getSamplerIndex(samplerType: ISamplerType) {
-        return (samplerType.addressModeU === 'repeat' ? 1 : 0) +
-            (samplerType.addressModeV === 'repeat' ? 1 : 0) +
-            (samplerType.magFilter === 'linear' ? 1 : 0)
     }
 
     private configureRenderPassDescriptor() {
@@ -271,167 +229,6 @@ export class Renderer {
         this.curScene = scene
         const newRendringInfos = getRenderingInfos(this.curScene)
         this.renderingInfos = newRendringInfos
-
-        function getDrawObject(obj: Renderable): IObjectInfo {
-            const info = obj.getObjectInfo()
-            const vertexInfo = getVertexInfo(info.vertexData, info.name)
-            const colorInfo = getFillColorInfo(info.fillColor, info.name)
-            const transformBuffer = getTransformationBuffer(info.name)
-
-
-            if (info.type === 'primitive') {
-                return {
-                    type: 'primitive',
-                    name: info.name,
-                    vertexData: vertexInfo.vertices,
-                    vertexBuffer: vertexInfo.buffer,
-                    fillColor: colorInfo.color,
-                    fillColorUniform: colorInfo.buffer,
-                    transformationUniform: transformBuffer,
-                    draw: info.draw,
-                }
-            } else if (info.type === 'texture') {
-                const textureInfo = getTextureInfo(info.name, info.imageBitmap, info.textureUVs)
-                return {
-                    type: 'texture',
-                    name: info.name,
-                    vertexData: vertexInfo.vertices,
-                    vertexBuffer: vertexInfo.buffer,
-                    fillColor: colorInfo.color,
-                    fillColorUniform: colorInfo.buffer,
-                    transformationUniform: transformBuffer,
-                    texture: textureInfo.texture,
-                    textureUVs: textureInfo.uvData,
-                    textureUVsBuffer: textureInfo.uvBuffer,
-                    samplerType: info.samplerType,
-                    reColorImage: info.reColorImage,
-                    showBoundingBox: info.showBoundingBox,
-                    flags: getTextureFlags(info),
-                    draw: info.draw,
-                }
-            }
-
-            const textureInfo = getTextureInfo(info.name, info.imageBitmap, info.textureUVs())
-            return {
-                type: 'animated-texture',
-                name: info.name,
-                vertexData: vertexInfo.vertices,
-                vertexBuffer: vertexInfo.buffer,
-                fillColor: colorInfo.color,
-                fillColorUniform: colorInfo.buffer,
-                transformationUniform: transformBuffer,
-                texture: textureInfo.texture,
-                textureUVs: textureInfo.uvData,
-                textureUVsData: info.textureUVs,
-                textureUVsBuffer: textureInfo.uvBuffer,
-                samplerType: info.samplerType,
-                reColorImage: info.reColorImage,
-                showBoundingBox: info.showBoundingBox,
-                flags: getTextureFlags(info),
-                draw: info.draw,
-            }
-
-            function getVertexInfo(data: number[], name: string) {
-                const vertexData = new Float32Array(data)
-                const vertexBuffer = device.createBuffer({
-                    label: `Vertex Buffer: ${name}`,
-                    size: vertexData.byteLength,
-                    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-                })
-
-                return {
-                    vertices: vertexData,
-                    buffer: vertexBuffer
-                }
-            }
-
-            function getFillColorInfo(data: number[], name: string) {
-                if (data.length != 4) {
-                    throw new Error("Data must have 4 elements")
-                }
-
-                data.forEach((entry) => {
-                    if (entry < 0 || entry > 1) {
-                        throw new Error("Data values must be between 0 and 1")
-                    }
-                })
-
-                const fillColorBuffer = device.createBuffer({
-                    label: `Color Fill Uniform Buffer: ${name}`,
-                    size: 4 * 4,
-                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-                })
-
-                return {
-                    color: new Float32Array(data),
-                    buffer: fillColorBuffer,
-                }
-            }
-
-            function getTransformationBuffer(name: string) {
-                const transformBuffer = device.createBuffer({
-                    label: `World Transformation Buffer: ${name}`,
-                    size: 16 * 4,
-                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-                })
-
-
-                return transformBuffer
-
-            }
-
-            function getTextureInfo(name: string, image: ImageBitmap, uvs: number[]) {
-                const texture = device.createTexture({
-                    label: `Texture: ${name}`,
-                    format: 'rgba8unorm',
-                    size: [image.width, image.height],
-                    usage: GPUTextureUsage.TEXTURE_BINDING |
-                        GPUTextureUsage.COPY_DST |
-                        GPUTextureUsage.RENDER_ATTACHMENT
-                })
-
-                device.queue.copyExternalImageToTexture(
-                    { source: image, flipY: false },
-                    { texture },
-                    { width: image.width, height: image.height },
-                )
-
-                const uvData = new Float32Array(uvs)
-                const uvBuffer = device.createBuffer({
-                    label: `UV Vertex Buffer: ${name}`,
-                    size: uvData.byteLength,
-                    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-                })
-
-                return {
-                    texture,
-                    uvData,
-                    uvBuffer,
-                }
-            }
-
-            function getTextureFlags(info: IObjectInfoRequest) {
-                const flags = new Uint32Array([0])
-                if (info.type === 'texture' || info.type === 'animated-texture') {
-                    if (info.reColorImage) {
-                        flags[0] = flags[0] | 1
-                    }
-                    if (info.showBoundingBox) {
-                        flags[0] = flags[0] | (1 << 1)
-                    }
-                }
-
-                const buffer = device.createBuffer({
-                    label: `Flags Uniform: ${info.name}`,
-                    size: flags.byteLength,
-                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-                })
-
-                device.queue.writeBuffer(buffer, 0, flags)
-
-                return buffer
-            }
-        }
 
         function getViewProjection(camera: Camera) {
             const viewProjMat = new Float32Array(camera.viewProjMat)
@@ -478,8 +275,10 @@ export class Renderer {
                 }
 
                 for (const renderable of info.renderables) {
+                    const type = renderable.getObjectInfo().type
+                    const renderTemplate = getRenderTemplate(type)
                     renderingPassInfo.objectInfos.push(
-                        getDrawObject(renderable)
+                        renderTemplate.getDrawObject(renderable, device)
                     )
                 }
 
@@ -553,14 +352,13 @@ export class Renderer {
     private processRenderPass(encoder: GPUCommandEncoder, info: IRenderingPassInfo) {
         const pass = encoder.beginRenderPass(this.renderPassDescriptor)
 
-        let v = getViewPortInfo(info.viewPort, this.canvas)
+        let v = getViewPortInfo(this.canvas, info.viewPort)
         pass.setViewport(v.x, v.y, v.width, v.height, 0, 1)
         pass.setScissorRect(v.x, v.y, v.width, v.height)
 
         this.device.queue.writeBuffer(info.vpMatUniform, 0, new Float32Array(info.camera.viewProjMat))
 
         for (const objectInfo of info.objectInfos) {
-
             pass.setPipeline(this.pipelines[objectInfo.type])
 
             pass.setBindGroup(0, this.getBindGroup(objectInfo, info.vpMatUniform))
@@ -570,14 +368,8 @@ export class Renderer {
 
             pass.setVertexBuffer(0, objectInfo.vertexBuffer)
 
-            if (objectInfo.type === 'texture') {
-                pass.setVertexBuffer(1, objectInfo.textureUVsBuffer)
-                this.device.queue.writeBuffer(objectInfo.textureUVsBuffer, 0, objectInfo.textureUVs)
-            } else if (objectInfo.type === 'animated-texture') {
-                pass.setVertexBuffer(1, objectInfo.textureUVsBuffer)
-                objectInfo.textureUVs.set(objectInfo.textureUVsData())
-                this.device.queue.writeBuffer(objectInfo.textureUVsBuffer, 0, objectInfo.textureUVs)
-            }
+            const renderTemplate = getRenderTemplate(objectInfo.type)
+            renderTemplate.processRenderPass(objectInfo, pass, this.device)
 
             pass.draw(objectInfo.vertexData.length / 2)
         }
@@ -590,7 +382,7 @@ export class Renderer {
             return transformationArray
         }
 
-        function getViewPortInfo(v: IViewPortInfoRequest, canvas: HTMLCanvasElement): IViewPortInfo {
+        function getViewPortInfo(canvas: HTMLCanvasElement, v?: IViewPortInfoRequest): IViewPortInfo {
             if (!v) {
                 return { x: 0, y: 0, width: canvas.width, height: canvas.height }
             }
